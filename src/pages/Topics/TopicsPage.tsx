@@ -5,6 +5,7 @@ import RightSideBar from "../../components/RightSideBar/RightSideBar";
 import { FollowPlus, ShareSVG } from "../../assets/icons/icons";
 import { useAuth } from "../../context/AuthContext/AuthContext";
 import { useData } from "../../context/DataContext/DataContext";
+import { CheckCircle2Icon } from "lucide-react";
 
 // Interface for post response
 interface TopicPost {
@@ -140,14 +141,16 @@ const TopicsPage = () => {
               <p className="text-[10px]">Followers</p>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex items-center px-8 py-1 bg-[#FFD30F] rounded-md gap-2 justify-center relative">
-                <FollowPlus size={12} />
+              <div className={`flex items-center px-8 py-1 ${isFollowing ? 'bg-gray-200': 'bg-[#FFD30F]'}  rounded-md gap-2 justify-center relative`}>
+                {
+                  isFollowing ? <CheckCircle2Icon size={12} /> : <FollowPlus size={12} />
+                }
                 <button
-                  className="text-gray-500 cursor-pointer text-sm font-bold"
+                  className={`text-gray-500 cursor-pointer text-sm font-bold`}
                   onClick={handleFollow}
                   disabled={isFollowLoading}
                 >
-                  {isFollowing ? "Unfollow" : "Follow"}
+                  {isFollowing ? "Joined" : "Follow"}
                 </button>
                 {isFollowLoading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-[#FFD30F] bg-opacity-75 rounded-md">
