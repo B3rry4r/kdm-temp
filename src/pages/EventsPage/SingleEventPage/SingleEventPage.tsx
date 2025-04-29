@@ -135,7 +135,7 @@ const SingleEventPage: React.FC = () => {
       const response = await apiClient.post('/event/register/complete', payload);
       console.log('POST /event/register/complete response:', JSON.stringify(response.data, null, 2));
 
-      if (response.data.message === 'Payment successful') {
+      if (response.data.message === 'Event registration successful') {
         setPaymentStatus('success');
         setHasRegistered(true);
         setEvent((prev) => (prev ? { ...prev, registered: true } : null));
@@ -225,7 +225,7 @@ const SingleEventPage: React.FC = () => {
     setPaymentStatus(null);
     // Remove tx_ref from URL
     if (txRef) {
-      navigate(`/event/${id}`, { replace: true });
+      navigate(`/events/event/${id}`, { replace: true });
     }
   };
 
