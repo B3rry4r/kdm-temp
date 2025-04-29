@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+.font-family{
+  font-family: "Nunito Sans", sans-serif;
+}
+
+*{
+  font-family: "Nunito Sans", sans-serif;
+}
+
+body{
+  box-sizing: border-box;
+}
