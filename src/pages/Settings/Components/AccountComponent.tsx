@@ -3,6 +3,8 @@ import { useAuth } from '../../../context/AuthContext/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
+import imageCompression from 'browser-image-compression';
+
 
 // Define user type
 interface User {
@@ -40,6 +42,42 @@ const AccountComponent = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+// Add cleanup in handleImageChange and useEffect
+const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (file) {
+    try {
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1024,
+        useWebWorker: true,
+      };
+
+      const compressedFile = await imageCompression(file, options);
+
+      // Revoke previous preview URL if it exists
+      if (previewImage) {
+        URL.revokeObjectURL(previewImage);
+      }
+
+      setForm((prev) => ({ ...prev, profile_picture: compressedFile }));
+      const previewUrl = URL.createObjectURL(compressedFile);
+      setPreviewImage(previewUrl);
+    } catch (error) {
+      console.error('Image compression error:', error);
+      setError('Failed to compress image');
+    }
+  }
+};
+
+// Clean up preview URL on component unmount
+useEffect(() => {
+  return () => {
+    if (previewImage) {
+      URL.revokeObjectURL(previewImage);
+    }
+  };
+}, [previewImage]);
   // Fetch user data from localStorage on mount
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -59,16 +97,6 @@ const AccountComponent = () => {
       setError('User data not found in localStorage');
     }
   }, []);
-
-  // Handle image upload
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setForm((prev) => ({ ...prev, profile_picture: file }));
-      const previewUrl = URL.createObjectURL(file);
-      setPreviewImage(previewUrl);
-    }
-  };
 
   // Handle form input changes
   const handleInputChange = (
