@@ -16,6 +16,7 @@ interface ProfileData {
   name: string;
   date_joined: string;
   bio: string | null;
+  profile_picture: string;
   followers: number;
   following: number;
   posts: number;
@@ -206,7 +207,9 @@ const ProfilePage = () => {
           <ForwardArrowSVG size={13} />
         </div>
         <div className="profile px-10 max-sm:px-4 max-sm:flex-col border-b border-b-gray-200 pb-10 flex gap-2">
-          <div className="left w-20 min-w-20 bg-gray-300 h-20 rounded-full"></div>
+          <div className="left w-20 min-w-20 bg-gray-300 h-20 overflow-hidden rounded-full">
+            <img src={profile.profile_picture} alt="profile picture" className='w-full h-full object-cover' />
+          </div>
           <div className="right flex flex-col p-2 gap-2 pr-4">
             <h1 className="text-xl font-bold">{profile.name}</h1>
             <p className="text-xs">{profile.bio || 'No bio available'}</p>
