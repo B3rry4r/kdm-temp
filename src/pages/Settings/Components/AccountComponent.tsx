@@ -48,7 +48,7 @@ const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
   if (file) {
     try {
       const options = {
-        maxSizeMB: 1,
+        maxSizeMB: 0.5,
         maxWidthOrHeight: 1024,
         useWebWorker: true,
       };

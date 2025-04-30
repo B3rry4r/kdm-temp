@@ -12,13 +12,13 @@ import {
   SettingsSVG,
 } from "../../assets/icons/icons";
 import NotificationCard from "./components/NotificationCard";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DynamicRow } from "../../pages/MyCoursesPage/SingleCousre/MySingleCourse";
 import { Link, useNavigate } from "react-router-dom";
 import Modal from "../../pages/Registration/Modal";
 import { Image as ImageIcon, Smile } from "lucide-react";
 import { usePostUpdate } from "../../context/PostUpdateContext/PostUpdateContext";
-
+import imageCompression from "browser-image-compression";
 
 const Header = () => {
   const { triggerRefresh } = usePostUpdate();
@@ -31,6 +31,7 @@ const Header = () => {
   const [postContent, setPostContent] = useState("");
   const [images, setImages] = useState<File[]>([]);
   const [selectedTopicId, setSelectedTopicId] = useState<number | null>(1); // Default to SME Mata
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]); // Added for preview URLs
   const navigate = useNavigate();
 
   const toggleNotifications = () => setIsNotificationOpen(!isNotificationOpen);
@@ -62,26 +63,57 @@ const Header = () => {
   const clearPostModalState = () => {
     setPostContent("");
     setImages([]);
+    imagePreviews.forEach((url) => URL.revokeObjectURL(url)); // Clean up preview URLs
+    setImagePreviews([]);
     setSelectedTopicId(1);
     setIsCreateOpen(false);
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      setImages((prev) => [...prev, ...Array.from(files)]);
+      try {
+        const compressionOptions = {
+          maxSizeMB: 0.5, // Maximum size in MB
+          maxWidthOrHeight: 1024, // Maximum width or height
+          useWebWorker: true, // Use web worker for better performance
+        };
+
+        // Compress each file
+        const compressedFiles = await Promise.all(
+          Array.from(files).map(async (file) => {
+            return await imageCompression(file, compressionOptions);
+          })
+        );
+
+        // Generate preview URLs for compressed files
+        const newPreviews = compressedFiles.map((file) => URL.createObjectURL(file));
+
+        // Update state
+        setImages((prev) => [...prev, ...compressedFiles]);
+        setImagePreviews((prev) => [...prev, ...newPreviews]);
+      } catch (error) {
+        console.error("Image compression error:", error);
+        alert("Failed to compress images. Please try again.");
+      }
     }
   };
-  
+
   const removeImage = (index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => {
+      const newPreviews = prev.filter((_, i) => i !== index);
+      // Revoke URL for removed image
+      URL.revokeObjectURL(prev[index]);
+      return newPreviews;
+    });
   };
 
   const handleTopicSelect = (topicId: number) => {
     setSelectedTopicId(topicId);
     setIsTopicSelectorOpen(false);
   };
-  
+
   const handlePostSubmit = async () => {
     if (!postContent.trim()) {
       alert("Post content cannot be empty");
@@ -115,20 +147,24 @@ const Header = () => {
       });
 
       console.log(JSON.stringify(response));
-      
-      // ✅ Trigger a refresh across all pages listening to PostUpdateContext
+
+      // Trigger a refresh across all pages listening to PostUpdateContext
       triggerRefresh();
 
-      // ✅ Reset local UI
-      setPostContent("");
-      setImages([]);
-      setSelectedTopicId(1);
-      setIsCreateOpen(false);
+      // Reset local UI
+      clearPostModalState();
     } catch (error) {
       console.error("Failed to create post:", error);
       alert("Failed to create post. Please try again.");
     }
   };
+
+  // Clean up preview URLs on component unmount
+  useEffect(() => {
+    return () => {
+      imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [imagePreviews]);
 
   const selectedTopic = topics.find((topic) => topic.id === selectedTopicId);
 
@@ -248,10 +284,10 @@ const Header = () => {
             {/* Image Preview Section */}
             {images.length > 0 && (
               <div className="w-full flex gap-2 overflow-x-auto mt-2">
-                {images.map((image, index) => (
+                {images.map((_, index) => (
                   <div key={index} className="relative w-16 h-16 rounded-md overflow-hidden">
                     <img
-                      src={URL.createObjectURL(image)}
+                      src={imagePreviews[index]}
                       alt={`preview-${index}`}
                       className="w-full h-full object-cover rounded-md"
                     />
