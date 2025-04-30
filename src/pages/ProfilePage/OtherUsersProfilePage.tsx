@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ContentCard from '../HomePage/HomePageComponents/ContentCard';
 import {
@@ -10,6 +10,7 @@ import UserCard from '../HomePage/HomePageComponents/UserCard';
 import { useAuth } from '../../context/AuthContext/AuthContext';
 import { usePostUpdate } from '../../context/PostUpdateContext/PostUpdateContext';
 
+// Interface for profile data
 interface ProfileData {
   name: string;
   date_joined: string;
@@ -21,6 +22,7 @@ interface ProfileData {
   iam_following: boolean;
 }
 
+// Interface for user in followers/following
 interface User {
   id: string;
   firstname: string;
@@ -30,6 +32,7 @@ interface User {
   profile_picture: string;
 }
 
+// Interface for follow data
 interface FollowData {
   id: number;
   user_id: number;
@@ -48,14 +51,15 @@ interface FollowData {
   };
 }
 
+// Interface for post
 interface Post {
   id: number;
-  user_id: string;
+  user_id: number;
   topic_id: number;
   content: string;
   video: string | null;
   updated_at: string;
-  type: number;
+  type: number | null;
   image_urls: string[];
   liked: boolean;
   saved: boolean;
@@ -65,6 +69,9 @@ interface Post {
     id: number;
     name: string;
     logo: string;
+    banner: string;
+    follower_count: number;
+    is_user_following: boolean;
   };
   user: {
     id: number;
@@ -75,7 +82,17 @@ interface Post {
     is_consultant_profile: boolean;
     is_an_admin: boolean;
     group_admin_data: any;
+    is_active: boolean;
   };
+}
+
+// Interface for paginated posts response
+interface PaginatedPostsResponse {
+  current_page: number;
+  data: Post[];
+  last_page: number;
+  per_page: number;
+  total: number;
 }
 
 const OtherUsersProfilePage = () => {
@@ -90,12 +107,15 @@ const OtherUsersProfilePage = () => {
   const [followers, setFollowers] = useState<User[]>([]);
   const [following, setFollowing] = useState<User[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isFollowingLoading, setIsFollowingLoading] = useState(false);
   const [isFollowed, setIsFollowed] = useState(false);
   const [followerCount, setFollowerCount] = useState<number>(0);
   const [followersLoading, setFollowersLoading] = useState(false);
   const [followingLoading, setFollowingLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Fetch profile data and initialize follow state
   useEffect(() => {
@@ -103,7 +123,6 @@ const OtherUsersProfilePage = () => {
       if (!id) {
         console.log(followerCount);
         alert('Invalid user ID');
-        setLoading(false);
         return;
       }
 
@@ -114,7 +133,6 @@ const OtherUsersProfilePage = () => {
         setProfile(profileData);
         setIsFollowed(profileData.iam_following);
         setFollowerCount(profileData.followers);
-        
       } catch (error: any) {
         console.error('Profile fetch error:', error.response?.data || error.message);
         alert('Failed to load profile');
@@ -124,17 +142,61 @@ const OtherUsersProfilePage = () => {
     fetchProfile();
   }, [id, apiClient]);
 
-  // Fetch posts (combined both useEffect hooks)
+  // Fetch posts (initial load)
   useEffect(() => {
     const fetchPosts = async () => {
-      if (!id) return;
+      if (!id || !hasMore) return;
+
+      try {
+        const response = await apiClient.get<PaginatedPostsResponse>('/posts', {
+          params: { page, perPage: 10 },
+        });
+        console.log('GET /posts response:', JSON.stringify(response.data, null, 2));
+        const userPosts = response.data.data.filter((post: Post) => post.user_id.toString() === id.toString());
+        setPosts((prevPosts) => [...prevPosts, ...userPosts]);
+        setHasMore(response.data.current_page < response.data.last_page);
+      } catch (error: any) {
+        console.error('Posts fetch error:', error.response?.data || error.message);
+        alert('Failed to load posts');
+      }
+    };
+
+    setPosts([]);
+    setPage(1);
+    setHasMore(true);
+    fetchPosts();
+  }, [id, shouldRefresh, apiClient]);
+
+  // Infinite scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!containerRef.current || loading || !hasMore) return;
+      const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+      if (scrollTop + clientHeight >= scrollHeight - 2) {
+        console.log('Reached bottom, fetching page:', page + 1);
+        setPage((prevPage) => prevPage + 1);
+      }
+    };
+
+    const container = containerRef.current;
+    container?.addEventListener('scroll', handleScroll);
+    return () => container?.removeEventListener('scroll', handleScroll);
+  }, [loading, hasMore, page]);
+
+  // Fetch posts (scroll-triggered)
+  useEffect(() => {
+    const fetchPosts = async () => {
+      if (!id || !hasMore || page === 1) return;
 
       try {
         setLoading(true);
-        const response = await apiClient.get('/posts');
+        const response = await apiClient.get<PaginatedPostsResponse>('/posts', {
+          params: { page, perPage: 10 },
+        });
         console.log('GET /posts response:', JSON.stringify(response.data, null, 2));
-        const userPosts = response.data.filter((post: Post) => post.user_id.toString() === id.toString());
-        setPosts(userPosts);
+        const userPosts = response.data.data.filter((post: Post) => post.user_id.toString() === id.toString());
+        setPosts((prevPosts) => [...prevPosts, ...userPosts]);
+        setHasMore(response.data.current_page < response.data.last_page);
       } catch (error: any) {
         console.error('Posts fetch error:', error.response?.data || error.message);
         alert('Failed to load posts');
@@ -144,7 +206,7 @@ const OtherUsersProfilePage = () => {
     };
 
     fetchPosts();
-  }, [id, apiClient, shouldRefresh]);
+  }, [page, id, hasMore, apiClient]);
 
   // Fetch followers when popup opens
   useEffect(() => {
@@ -161,7 +223,7 @@ const OtherUsersProfilePage = () => {
           firstname: f.user.firstname,
           lastname: f.user.lastname,
           bio: f.user.bio || null,
-          iam_following: f.user.is_active, // Assuming `is_active` indicates if you're following them; adjust if there's a better field
+          iam_following: f.user.is_active,
           profile_picture: f.user.profile_picture,
         }));
         setFollowers(mappedFollowers);
@@ -193,7 +255,7 @@ const OtherUsersProfilePage = () => {
           firstname: f.user.firstname,
           lastname: f.user.lastname,
           bio: f.user.bio || null,
-          iam_following: f.user.is_active, // Adjust if there's a better field for `iam_following`
+          iam_following: f.user.is_active,
           profile_picture: f.user.profile_picture,
         }));
         setFollowing(mappedFollowing);
@@ -248,21 +310,16 @@ const OtherUsersProfilePage = () => {
     navigate('/');
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="loader" />
-      </div>
-    );
-  }
-
   if (!profile) {
     return <div className="flex items-center justify-center h-full text-sm font-bold">Profile not found</div>;
   }
 
   return (
     <div className="w-full flex h-full">
-      <div className="w-full h-full flex-[4] overflow-x-hidden overflow-y-scroll flex flex-col gap-2">
+      <div
+        ref={containerRef}
+        className="w-full h-full flex-[4] overflow-x-hidden overflow-y-scroll flex flex-col gap-2"
+      >
         <div
           onClick={handleEnrollClick}
           className="cursor-pointer mx-10 mt-10 w-10 min-h-10 rotate-180 mb-5 bg-gray-300 rounded-full flex items-center justify-center"
@@ -379,9 +436,9 @@ const OtherUsersProfilePage = () => {
         </div>
         <div className="p-10 max-sm:p-4 flex flex-col gap-4">
           {posts.length > 0 ? (
-            posts.map((post) => (
+            posts.map((post, index) => (
               <ContentCard
-                key={post.id}
+                key={index}
                 id={post.id.toString()}
                 userId={post.user_id.toString()}
                 title={post.topic.name}
@@ -398,6 +455,11 @@ const OtherUsersProfilePage = () => {
             ))
           ) : (
             <p className="text-xs text-center">No posts available</p>
+          )}
+          {loading && (
+            <div className="flex items-center justify-center">
+              <div className="loader" />
+            </div>
           )}
         </div>
       </div>

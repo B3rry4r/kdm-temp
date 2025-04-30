@@ -5,6 +5,7 @@ import RightSideBar from '../../components/RightSideBar/RightSideBar';
 import { useAuth } from '../../context/AuthContext/AuthContext';
 import { usePostUpdate } from '../../context/PostUpdateContext/PostUpdateContext';
 
+// Interface for ad response
 interface Ad {
   id: number;
   image: string;
@@ -13,8 +14,49 @@ interface Ad {
   link: string;
 }
 
+// Interface for paginated posts response
+interface PaginatedPostsResponse {
+  current_page: number;
+  data: Array<{
+    id: number;
+    user_id: number;
+    topic_id: number;
+    content: string;
+    video: string | null;
+    updated_at: string;
+    type: number | null;
+    image_urls: string[];
+    liked: boolean;
+    saved: boolean;
+    likes_count: number;
+    comments_count: number;
+    topic: {
+      id: number;
+      name: string;
+      logo: string;
+      banner: string;
+      follower_count: number;
+      is_user_following: boolean;
+    };
+    user: {
+      id: number;
+      firstname: string;
+      lastname: string;
+      active_subscription: boolean;
+      profile_picture: string;
+      is_consultant_profile: boolean;
+      is_an_admin: boolean;
+      group_admin_data: any;
+      is_active: boolean;
+    };
+  }>;
+  last_page: number;
+  per_page: number;
+  total: number;
+}
+
 const HomePage = () => {
-  const { apiClient } = useAuth();
+  const { apiClient, isAuthenticated } = useAuth();
   const [content, setContent] = useState<Array<{ type: string; data: any }>>([]);
   const [ads, setAds] = useState<Ad[]>([]);
   const [page, setPage] = useState(1);
@@ -24,6 +66,12 @@ const HomePage = () => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { shouldRefresh } = usePostUpdate();
+
+  // Helper to check if user exists in localStorage
+  const isUserInLocalStorage = (): boolean => {
+    const storedUser = localStorage.getItem('user');
+    return !!storedUser && storedUser !== 'null' && storedUser !== 'undefined';
+  };
 
   // Fetch ads
   useEffect(() => {
@@ -56,39 +104,40 @@ const HomePage = () => {
     setError(null);
 
     try {
-      const response = await apiClient.get('/posts/public', {
+      // Determine endpoint based on authentication and localStorage
+      const endpoint = isAuthenticated && isUserInLocalStorage() ? '/posts' : '/posts/public';
+      console.log(`Fetching posts from ${endpoint} (page: ${pageNum})`);
+
+      const response = await apiClient.get<PaginatedPostsResponse>(endpoint, {
         params: { page: pageNum, perPage: 10 },
       });
-      console.log('GET /posts/public response:', JSON.stringify(response.data, null, 2));
+      console.log(`GET ${endpoint} response:`, JSON.stringify(response.data, null, 2));
 
-      const posts = response.data.map((post: any) => {
-        const profilePicture = post.user?.profile_picture
-          ? `${post.user.profile_picture}?t=${Date.now()}` // Cache-busting
-          : null;
-        return {
-          type: 'content',
-          data: {
-            id: post.id,
-            title: post.content?.split('\n')[0] || 'Post',
-            description: post.content || '',
-            image: post.image_urls && post.image_urls.length > 0 ? post.image_urls[0] : null,
-            likes: post.likes_count || 0,
-            author:
-              post.user && post.user.firstname && post.user.lastname
-                ? `${post.user.firstname} ${post.user.lastname}`
-                : 'Unknown Author',
-            institution: post.topic && post.topic.name ? post.topic.name : 'Unknown Topic',
-            time: post.updated_at || 'Unknown Time',
-            comments: post.comments_count ?? 0,
-            profilePicture,
-            userId: post.user_id,
-          },
-        };
-      });
+      const posts = response.data.data.map((post) => ({
+        type: 'content',
+        data: {
+          id: post.id.toString(),
+          title: post.content?.split('\n')[0]?.substring(0, 50) || 'Post',
+          description: post.content || '',
+          image: post.image_urls && post.image_urls.length > 0 ? post.image_urls[0] : null,
+          likes: post.likes_count || 0,
+          author:
+            post.user && post.user.firstname && post.user.lastname
+              ? `${post.user.firstname} ${post.user.lastname}`
+              : 'Unknown Author',
+          institution: post.topic && post.topic.name ? post.topic.name : 'Unknown Topic',
+          time: post.updated_at || 'Unknown Time',
+          comments: post.comments_count ?? 0,
+          profilePicture: post.user?.profile_picture
+            ? `${post.user.profile_picture}?t=${Date.now()}` // Cache-busting
+            : null,
+          userId: post.user_id.toString(),
+        },
+      }));
 
       setContent((prevContent) => [...prevContent, ...posts]);
       setPage(pageNum + 1);
-      setHasMore(posts.length > 0);
+      setHasMore(response.data.current_page < response.data.last_page);
     } catch (err: any) {
       setError('Failed to load posts. Please try again.');
       console.error('API Error:', err.response?.data || err.message);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import ContentCard from "../HomePage/HomePageComponents/ContentCard";
 import RightSideBar from "../../components/RightSideBar/RightSideBar";
@@ -7,7 +7,7 @@ import { useAuth } from "../../context/AuthContext/AuthContext";
 import { useData } from "../../context/DataContext/DataContext";
 import { CheckCircle2Icon } from "lucide-react";
 
-// Interface for post response
+// Interface for topic post
 interface TopicPost {
   id: number;
   user_id: number;
@@ -16,7 +16,8 @@ interface TopicPost {
   image_urls: string[];
   likes_count: number;
   comments_count: number;
-  shares_count?: number;
+  liked: boolean;
+  saved: boolean;
   updated_at: string;
   user: {
     id: number;
@@ -27,65 +28,134 @@ interface TopicPost {
     is_consultant_profile: boolean;
     is_an_admin: boolean;
     group_admin_data: object | null;
+    is_active: boolean;
   } | null;
   topic: {
     id: number;
     name: string;
     logo: string;
+    banner: string;
+    follower_count: number;
+    is_user_following: boolean;
   };
+}
+
+// Interface for paginated topic posts response
+interface PaginatedTopicPostsResponse {
+  current_page: number;
+  data: TopicPost[];
+  last_page: number;
+  per_page: number;
+  total: number;
 }
 
 const TopicsPage = () => {
   const { topicId } = useParams<{ topicId: string }>();
   const { apiClient, isAuthenticated } = useAuth();
   const { topics } = useData();
-  const [posts, setPosts] = useState<TopicPost[]>([]);
+  const [content, setContent] = useState<Array<{ type: string; data: any }>>([]);
+  const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState<number>(0);
-  const [isFollowLoading, setIsFollowLoading] = useState(false); // Loader for follow action
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Find topic name and details
+  // Find topic details
   const topic = topicId ? topics.find((t) => t.id === parseInt(topicId)) : null;
   const topicName = topic?.name || "Unknown Topic";
   const topicLogo = topic?.logo || null;
   const topicBanner = topic?.banner || null;
 
-  // Initialize follower count
+  // Initialize follower count and isFollowing
   useEffect(() => {
-    if (topic?.follower_count !== undefined) {
-      setFollowerCount(topic.follower_count);
+    if (topic) {
+      if (topic.follower_count !== undefined) {
+        setFollowerCount(topic.follower_count);
+      }
+      if (topic.is_user_following !== undefined) {
+        setIsFollowing(topic.is_user_following);
+      }
     }
   }, [topic]);
 
   // Fetch topic posts
-  useEffect(() => {
-    const fetchPosts = async () => {
-      if (!topicId || !isAuthenticated) {
-        setError("Invalid topic ID or not authenticated");
-        setIsLoading(false);
-        return;
-      }
+  const fetchPosts = async (pageNum: number) => {
+    if (!topicId || !isAuthenticated || isLoading || !hasMore) {
+      if (!topicId) setError("Invalid topic ID");
+      if (!isAuthenticated) setError("Not authenticated");
+      setIsLoading(false);
+      return;
+    }
 
-      try {
-        const postsResponse = await apiClient.get(`/posts/topic/${topicId}`);
-        const fetchedPosts: TopicPost[] = postsResponse.data;
-        if (Array.isArray(fetchedPosts)) {
-          setPosts(fetchedPosts);
-        } else {
-          setError("Invalid posts data");
-        }
-      } catch (err: any) {
-        console.error("Error fetching posts:", err.response?.data || err.message);
-        setError("Failed to load posts");
-      } finally {
-        setIsLoading(false);
+    setIsLoading(true);
+    setError(null);
+    console.log(`Fetching posts for topicId: ${topicId}, page: ${pageNum}`);
+
+    try {
+      const response = await apiClient.get<PaginatedTopicPostsResponse>(`/posts/topic/${topicId}`, {
+        params: { page: pageNum, perPage: 10 },
+      });
+      console.log(`Fetched posts for topicId ${topicId}:`, JSON.stringify(response.data, null, 2));
+
+      const posts = response.data.data.map((post) => ({
+        type: 'content',
+        data: {
+          id: post.id.toString(),
+          userId: post.user_id.toString(),
+          title: post.content.substring(0, 50) + (post.content.length > 50 ? "..." : ""),
+          description: post.content,
+          image: post.image_urls[0] || null,
+          likes: post.likes_count,
+          comments: post.comments_count,
+          shares: 0, // shares_count not provided in JSON, default to 0
+          author: post.user
+            ? `${post.user.firstname} ${post.user.lastname}`
+            : "Unknown Author",
+          institution: post.topic.name || "Unknown Topic",
+          time: post.updated_at,
+          profilePicture: post.user?.profile_picture
+            ? `${post.user.profile_picture}?t=${Date.now()}` // Cache-busting
+            : null,
+        },
+      }));
+
+      setContent((prevContent) => [...prevContent, ...posts]);
+      setPage(pageNum + 1);
+      setHasMore(response.data.current_page < response.data.last_page);
+    } catch (err: any) {
+      console.error("Error fetching posts:", err.response?.data || err.message);
+      setError("Failed to load posts");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Initial fetch
+  useEffect(() => {
+    setContent([]);
+    setPage(1);
+    setHasMore(true);
+    fetchPosts(1);
+  }, [topicId, isAuthenticated]);
+
+  // Infinite scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!containerRef.current || isLoading || !hasMore) return;
+      const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+      if (scrollTop + clientHeight >= scrollHeight - 2) {
+        console.log('Fetching more posts...');
+        fetchPosts(page);
       }
     };
 
-    fetchPosts();
-  }, [topicId, isAuthenticated, apiClient]);
+    const container = containerRef.current;
+    container?.addEventListener('scroll', handleScroll);
+    return () => container?.removeEventListener('scroll', handleScroll);
+  }, [page, isLoading, hasMore, topicId, isAuthenticated]);
 
   // Handle follow/unfollow action
   const handleFollow = async () => {
@@ -97,7 +167,7 @@ const TopicsPage = () => {
     setIsFollowLoading(true);
     try {
       await apiClient.post(`/topics/follow/${topicId}`);
-      const newFollowStatus = !isFollowing; // Toggle follow status
+      const newFollowStatus = !isFollowing;
       setIsFollowing(newFollowStatus);
       setFollowerCount((prev) => prev + (newFollowStatus ? 1 : -1));
     } catch (err: any) {
@@ -108,7 +178,28 @@ const TopicsPage = () => {
     }
   };
 
-  if (isLoading) {
+  // Copy topic link to clipboard
+  const getPostUrl = () => {
+    const baseUrl = window.location.origin;
+    const postPath = `/topics/${topicId || "unknown"}`;
+    const fullUrl = `${baseUrl}${postPath}`;
+    console.log("Constructed post URL:", fullUrl);
+    return fullUrl;
+  };
+
+  const handleCopyLink = async () => {
+    const postUrl = getPostUrl();
+    try {
+      await navigator.clipboard.writeText(postUrl);
+      console.log("Copied post URL:", postUrl);
+      alert("Topic link copied to clipboard!");
+    } catch (err) {
+      console.error("Failed to copy post link:", err);
+      alert("Failed to copy topic link");
+    }
+  };
+
+  if (isLoading && content.length === 0) {
     return (
       <div className="w-full flex items-center justify-center h-full">
         <div className="loader"></div>
@@ -126,13 +217,16 @@ const TopicsPage = () => {
 
   return (
     <div className="flex h-full">
-      <div className="p-5 flex-[3] flex flex-col gap-10 overflow-y-auto h-full">
+      <div
+        ref={containerRef}
+        className="p-5 flex-[3] flex flex-col gap-10 overflow-y-auto h-full"
+      >
         <div className="w-full min-h-[100px] bg-gray-200 rounded-xl">
-          {topicBanner !== null ? <img src={topicBanner} alt="topic_banner" /> : null}
+          {topicBanner ? <img src={topicBanner} alt="topic_banner" className="w-full h-full object-cover rounded-xl" /> : null}
         </div>
         <div className="profile border-b border-b-gray-200 pb-10 flex max-sm:flex-col gap-2">
-          <div className="left w-20 bg-gray-300 h-20 rounded-full">
-            {topicLogo !== null ? <img src={topicLogo} alt="topic_logo" /> : null}
+          <div className="left w-20 bg-gray-300 h-20 rounded-full overflow-hidden">
+            {topicLogo ? <img src={topicLogo} alt="topic_logo" className="w-full h-full object-cover" /> : null}
           </div>
           <div className="right flex flex-col p-2 gap-2 pr-4">
             <h1 className="text-xl font-bold">{topicName}</h1>
@@ -141,10 +235,12 @@ const TopicsPage = () => {
               <p className="text-[10px]">Followers</p>
             </div>
             <div className="flex items-center gap-2">
-              <div className={`flex items-center px-8 py-1 ${isFollowing ? 'bg-gray-200': 'bg-[#FFD30F]'}  rounded-md gap-2 justify-center relative`}>
-                {
-                  isFollowing ? <CheckCircle2Icon size={12} /> : <FollowPlus size={12} />
-                }
+              <div
+                className={`flex items-center px-8 py-1 ${
+                  isFollowing ? "bg-gray-200" : "bg-[#FFD30F]"
+                } rounded-md gap-2 justify-center relative`}
+              >
+                {isFollowing ? <CheckCircle2Icon size={12} /> : <FollowPlus size={12} />}
                 <button
                   className={`text-gray-500 cursor-pointer text-sm font-bold`}
                   onClick={handleFollow}
@@ -158,39 +254,28 @@ const TopicsPage = () => {
                   </div>
                 )}
               </div>
-              <ShareSVG size={12} />
+              <div onClick={handleCopyLink} className="cursor-pointer">
+                <ShareSVG size={12} />
+              </div>
             </div>
           </div>
         </div>
-        {posts.length > 0 ? (
-          posts.map((post) => (
-            <ContentCard
-              key={post.id}
-              id={post.id.toString()}
-              userId={post.user_id.toString()}
-              title={
-                post.content.substring(0, 50) +
-                (post.content.length > 50 ? "..." : "")
-              }
-              description={post.content}
-              image={post.image_urls[0] || null}
-              likes={post.likes_count}
-              comments={post.comments_count}
-              shares={post.shares_count || 0}
-              author={
-                post.user
-                  ? `${post.user.firstname} ${post.user.lastname}`
-                  : "Unknown Author"
-              }
-              institution={post.topic.name}
-              time={post.updated_at}
-              profilePicture={post.user?.profile_picture || null}
-            />
+        {content.length > 0 ? (
+          content.map((item, index) => (
+            <ContentCard key={index} {...item.data} />
           ))
         ) : (
           <p className="text-sm text-gray-500">
             No posts found for this topic.
           </p>
+        )}
+        {isLoading && (
+          <div className="w-full flex items-center justify-center">
+            <div className="loader"></div>
+          </div>
+        )}
+        {!hasMore && content.length > 0 && (
+          <div className="text-center text-xs font-bold">No more posts to load.</div>
         )}
       </div>
       <div className="flex-[3] max-sm:hidden overflow-y-auto h-full">

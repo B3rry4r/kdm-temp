@@ -7,6 +7,7 @@ interface Topic {
   logo?: string;
   banner: string;
   follower_count: number;
+  is_user_following: boolean;
 }
 
 interface Institution {

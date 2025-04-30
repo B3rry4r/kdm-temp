@@ -65,6 +65,7 @@ const SingleEventPage: React.FC = () => {
   // Extract tx_ref from URL query params (for paid events after redirect)
   const queryParams = new URLSearchParams(location.search);
   const txRef = queryParams.get('tx_ref');
+  const status = queryParams.get('status');
 
   // Fetch event details, related events, speakers, and handle tx_ref
   useEffect(() => {
@@ -119,6 +120,11 @@ const SingleEventPage: React.FC = () => {
   const verifyPayment = async (eventId: number, txRef: string) => {
     if (!user || !user.id) {
       setError('User not authenticated');
+      return;
+    }
+
+    if(status != 'completed') {
+      setError(`Transaction Failed with status: ${status}`);
       return;
     }
 

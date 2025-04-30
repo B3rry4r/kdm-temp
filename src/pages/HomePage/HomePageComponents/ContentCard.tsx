@@ -180,6 +180,7 @@ const ContentCard = (props: Props) => {
   // Like/Unlike post
   const toggleLike = async () => {
     if (!isAuthenticated || !user?.id) {
+      console.log('Unauthenticated user attempted to like post, redirecting to /login');
       navigate('/login');
       return;
     }
@@ -214,6 +215,7 @@ const ContentCard = (props: Props) => {
   // Save/Unsave post
   const toggleSave = async () => {
     if (!isAuthenticated || !user?.id) {
+      console.log('Unauthenticated user attempted to save post, redirecting to /login');
       navigate('/login');
       return;
     }
@@ -246,6 +248,7 @@ const ContentCard = (props: Props) => {
   // Follow/Unfollow user
   const toggleFollow = async () => {
     if (!isAuthenticated || !user?.id || !props.userId) {
+      console.log('Unauthenticated user attempted to follow user, redirecting to /login');
       navigate('/login');
       return;
     }
@@ -277,6 +280,11 @@ const ContentCard = (props: Props) => {
   };
 
   const openFlow = (type: "edit" | "delete") => {
+    if (!isAuthenticated || !user?.id) {
+      console.log('Unauthenticated user attempted to open edit/delete modal, redirecting to /login');
+      navigate('/login');
+      return;
+    }
     setFlow(type);
   };
 
@@ -290,6 +298,11 @@ const ContentCard = (props: Props) => {
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isAuthenticated || !user?.id) {
+      console.log('Unauthenticated user attempted to upload image, redirecting to /login');
+      navigate('/login');
+      return;
+    }
     const files = e.target.files;
     if (files && files.length > 0) {
       setImages((prev) => [...prev, ...Array.from(files)]);
@@ -297,22 +310,33 @@ const ContentCard = (props: Props) => {
   };
 
   const removeImage = (index: number) => {
+    if (!isAuthenticated || !user?.id) {
+      console.log('Unauthenticated user attempted to remove image, redirecting to /login');
+      navigate('/login');
+      return;
+    }
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleTopicSelect = (topicId: number) => {
+    if (!isAuthenticated || !user?.id) {
+      console.log('Unauthenticated user attempted to select topic, redirecting to /login');
+      navigate('/login');
+      return;
+    }
     setSelectedTopicId(topicId);
     setIsTopicSelectorOpen(false);
   };
 
   const handleEditPost = async () => {
-    if (!postContent.trim()) {
-      alert("Post content cannot be empty");
+    if (!isAuthenticated || !user?.id) {
+      console.log('Unauthenticated user attempted to edit post, redirecting to /login');
+      navigate('/login');
       return;
     }
 
-    if (!user || !user.id) {
-      alert("User not authenticated");
+    if (!postContent.trim()) {
+      alert("Post content cannot be empty");
       return;
     }
 
@@ -352,8 +376,9 @@ const ContentCard = (props: Props) => {
   };
 
   const handleDeletePost = async () => {
-    if (!user || !user.id) {
-      alert("User not authenticated");
+    if (!isAuthenticated || !user?.id) {
+      console.log('Unauthenticated user attempted to delete post, redirecting to /login');
+      navigate('/login');
       return;
     }
 
@@ -418,10 +443,8 @@ const ContentCard = (props: Props) => {
     setIsShareOpen(false);
   };
 
-  // Share on Instagram (Note: Instagram doesn't have a direct share API)
+  // Share on Instagram
   const shareOnInstagram = () => {
-    // const postUrl = getPostUrl();
-    // Instagram doesn't support direct URL sharing; redirect to Instagram with a message
     alert('To share on Instagram, copy the link and paste it in your Instagram post or story.');
     handleCopyLink(); // Copy the link for the user
     console.log('Instagram share initiated (copy link provided)');
@@ -436,7 +459,14 @@ const ContentCard = (props: Props) => {
         <div className="w-full flex flex-col gap-3">
           <h1 className="font-bold text-xl">Edit Post</h1>
           <div
-            onClick={() => setIsTopicSelectorOpen(true)}
+            onClick={() => {
+              if (!isAuthenticated || !user?.id) {
+                console.log('Unauthenticated user attempted to open topic selector, redirecting to /login');
+                navigate('/login');
+                return;
+              }
+              setIsTopicSelectorOpen(true);
+            }}
             className="font-bold text-xs py-2 px-2 bg-gray-200 w-30 rounded-lg cursor-pointer"
           >
             {dataLoading ? <div className="loading"></div> : dataError ? "Error" : selectedTopic?.name || "Select Topic"}
@@ -446,7 +476,14 @@ const ContentCard = (props: Props) => {
               className="w-full h-[50px] p-2 resize-none text-[10px] outline-none"
               placeholder="Type your message..."
               value={postContent}
-              onChange={(e) => setPostContent(e.target.value)}
+              onChange={(e) => {
+                if (!isAuthenticated || !user?.id) {
+                  console.log('Unauthenticated user attempted to edit post content, redirecting to /login');
+                  navigate('/login');
+                  return;
+                }
+                setPostContent(e.target.value);
+              }}
               disabled={isSubmitting}
             ></textarea>
             {images.length > 0 && (
@@ -559,6 +596,11 @@ const ContentCard = (props: Props) => {
   };
 
   const toggleRS = async () => {
+    if (!isAuthenticated || !user?.id) {
+      console.log('Unauthenticated user attempted to report post, redirecting to /login');
+      navigate('/login');
+      return;
+    }
     setIsRSubmit(true);
     await new Promise((res) => setTimeout(res, 2000));
     setIsRSubmit(false);
@@ -569,6 +611,11 @@ const ContentCard = (props: Props) => {
   };
 
   const toggleReportOverlay = () => {
+    if (!isAuthenticated || !user?.id) {
+      console.log('Unauthenticated user attempted to open report modal, redirecting to /login');
+      navigate('/login');
+      return;
+    }
     setIsOverlayOpen(!isOverlayOpen);
   };
 
@@ -577,7 +624,14 @@ const ContentCard = (props: Props) => {
   };
 
   const navigateToComment = () => {
-    navigate(`/comments/${props.id || 'unknown'}`);
+    if (!isAuthenticated || !user?.id) {
+      console.log('Unauthenticated user attempted to comment, redirecting to /login');
+      navigate('/login');
+      return;
+    }
+    if (!props.isCommentScreen) {
+      navigate(`/comments/${props.id || 'unknown'}`);
+    }
   };
 
   const navToProfile = () => {
@@ -710,10 +764,6 @@ const ContentCard = (props: Props) => {
                     text={isFollowing ? "Unfollow Author" : "Follow Author"}
                   />
                 </div>
-                {/* <DynamicRow
-                  icon={<FollowPlus size={20} />}
-                  text="Follow Topic"
-                /> */}
                 <div className="cursor-pointer" onClick={toggleCopied}>
                   <DynamicRow
                     icon={<CopyLinkSVG size={20} />}
@@ -755,7 +805,14 @@ const ContentCard = (props: Props) => {
               <LikeSVG size={15} color={liked ? "#68049B" : "#544D58"} />
             </div>
             <p
-              onClick={() => setIsLikeOpen(!isLikeOpen)}
+              onClick={() => {
+                if (!isAuthenticated || !user?.id) {
+                  console.log('Unauthenticated user attempted to view likes, redirecting to /login');
+                  navigate('/login');
+                  return;
+                }
+                setIsLikeOpen(!isLikeOpen);
+              }}
               className="text-xs cursor-pointer text-gray-500"
             >
               {likesCount}
@@ -784,7 +841,7 @@ const ContentCard = (props: Props) => {
             ) : null}
           </div>
           <div
-            onClick={() => !props.isCommentScreen && navigateToComment()}
+            onClick={navigateToComment}
             className="comment flex cursor-pointer items-center gap-1"
           >
             <CommentSVG size={15} />
@@ -827,8 +884,12 @@ const ContentCard = (props: Props) => {
                   text="Share On Twitter"
                 />
               </div>
+              {
+                isCopied ? <div className="w-full p-2 text-xs font-bold bg-white absolute bottom-[-50px] border border-gray-200 rounded-lg left-0">Post Copied</div> : null
+              }
             </div>
           ) : null}
+              
         </div>
       </div>
       <Modal isOpen={!!flow} onClose={closeModal}>
