@@ -81,8 +81,6 @@ const MySingleCourse = () => {
   // Use the course progress context
   const { 
     getLessonStatus, 
-    getSectionStatus, 
-    getSectionProgress, 
     getCourseProgress 
   } = useCourseProgress();
   
@@ -93,6 +91,7 @@ const MySingleCourse = () => {
     const fetchCourse = async () => {
       if (!id) {
         setError('Invalid course ID');
+        alertSeverity;
         setIsLoading(false);
         return;
       }
@@ -151,7 +150,7 @@ const MySingleCourse = () => {
   // Map sections to CourseSectionOverview with completion status from context
   const courseSections: CourseSectionOverview[] = course?.sections?.map(section => {
     // Get section progress percentage from context
-    const sectionProgress = getSectionProgress(courseId, section.id);
+    // const sectionProgress = getSectionProgress(courseId, section.id);
     
     return {
       id: `section-${section.id}`,

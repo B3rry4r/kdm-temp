@@ -9,7 +9,6 @@ import RightSideBar from '../../components/RightSideBar/RightSideBar';
 import UserCard from '../HomePage/HomePageComponents/UserCard';
 import { useAuth } from '../../context/AuthContext/AuthContext';
 import { usePostUpdate } from '../../context/PostUpdateContext/PostUpdateContext';
-import AlertMessage from '../../components/AlertMessage';
 
 // Interface for profile data
 interface ProfileData {
@@ -117,9 +116,6 @@ const OtherUsersProfilePage = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [alertOpen, setAlertOpen] = useState(false);
-  const [alertMsg, setAlertMsg] = useState('');
-  const [alertSeverity, setAlertSeverity] = useState<'success' | 'error'>('success');
 
   // Fetch profile data and initialize follow state
   useEffect(() => {
@@ -470,12 +466,6 @@ const OtherUsersProfilePage = () => {
       <div className="overflow-y-scroll max-md:flex-[2] max-sm:hidden max-lg:hidden flex-[3]">
         <RightSideBar />
       </div>
-      <AlertMessage
-        open={alertOpen}
-        onClose={() => setAlertOpen(false)}
-        message={alertMsg}
-        severity="purple"
-      />
     </div>
   );
 };

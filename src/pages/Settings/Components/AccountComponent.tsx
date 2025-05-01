@@ -41,10 +41,8 @@ const AccountComponent = () => {
   });
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMsg, setAlertMsg] = useState('');
-  const [alertSeverity, setAlertSeverity] = useState<'success' | 'error'>('success');
 
 // Add cleanup in handleImageChange and useEffect
 const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,7 +67,6 @@ const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
       setPreviewImage(previewUrl);
     } catch (error) {
       console.error('Image compression error:', error);
-      setError('Failed to compress image');
     }
   }
 };
@@ -98,7 +95,6 @@ useEffect(() => {
         setPreviewImage(parsedUser.profile_picture);
       }
     } else {
-      setError('User data not found in localStorage');
     }
   }, []);
 
@@ -120,7 +116,6 @@ const handleSave = async () => {
   if (!user) return;
 
   setLoading(true);
-  setError(null);
 
   try {
     const formData = new FormData();
@@ -145,7 +140,7 @@ const handleSave = async () => {
       return;
     }
 
-    const response = await apiClient.post(`/account/profile/${user.id}`, formData, {
+    const response = await apiClient.post(`/account/profile`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
 
@@ -182,12 +177,9 @@ const handleSave = async () => {
     setUser(updatedUser);
 
     setAlertMsg('Profile updated successfully');
-    setAlertSeverity('success');
     setAlertOpen(true);
   } catch (err: any) {
-    setError(err.response?.data?.message || 'Failed to update profile');
     setAlertMsg(err.response?.data?.message || 'Failed to update profile');
-    setAlertSeverity('error');
     setAlertOpen(true);
   } finally {
     setLoading(false);
@@ -199,17 +191,14 @@ const handleSave = async () => {
     if (!user) return;
 
     setLoading(true);
-    setError(null);
 
     try {
-      await apiClient.put(`/account/deactivate/${user.id}`);
+      await apiClient.put(`/account/deactivate`);
       localStorage.removeItem('user');
       localStorage.removeItem('token');
       navigate('/login');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to deactivate account');
       setAlertMsg(err.response?.data?.message || 'Failed to deactivate account');
-      setAlertSeverity('error');
       setAlertOpen(true);
     } finally {
       setLoading(false);

@@ -20,7 +20,6 @@ const CoursesPage = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [filter, setFilter] = useState<string>('All');
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMsg, setAlertMsg] = useState('');
   const [alertSeverity, setAlertSeverity] = useState<'success' | 'error'>('success');
@@ -32,9 +31,9 @@ const CoursesPage = () => {
       try {
         const response = await apiClient.get<Course[]>('/courses');
         setCourses(response.data);
+        alertSeverity;
       } catch (err: any) {
         console.error('Error fetching courses:', err.response?.data || err.message);
-        setError('Failed to load courses');
         setAlertMsg('Failed to load courses');
         setAlertSeverity('error');
         setAlertOpen(true);

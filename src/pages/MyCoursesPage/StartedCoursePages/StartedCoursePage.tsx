@@ -337,7 +337,6 @@ const StartedCoursePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeLesson, setActiveLesson] = useState<ActiveLessonState | null>(null);
-  const [isQuizStarted, setIsQuizStarted] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMsg, setAlertMsg] = useState('');
   const [alertSeverity, setAlertSeverity] = useState<'purple' | 'success' | 'error'>('purple');

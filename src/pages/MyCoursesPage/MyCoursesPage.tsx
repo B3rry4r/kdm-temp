@@ -6,9 +6,9 @@ import { useSearch } from '../../components/header/Header';
 
 interface Course {
   id: number;
-  title: string;
+  course_title: string;
   description: string;
-  image: string;
+  course_image: string;
   type: string;
   price: number | null;
   org_id: number | null;
@@ -19,6 +19,9 @@ interface Course {
 interface MyCourseResponse {
   id: number;
   user_id: number;
+  course_title: string;
+  description: string;
+  course_image: string;
   course_id: number;
   created_at: string;
   completion_percent: number;
@@ -31,10 +34,8 @@ const MyCoursesPage = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [filter, setFilter] = useState<string>('All');
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMsg, setAlertMsg] = useState('');
-  const [alertSeverity, setAlertSeverity] = useState<'success' | 'error'>('success');
   const { searchQuery } = useSearch();
 
   useEffect(() => {
@@ -53,9 +54,9 @@ const MyCoursesPage = () => {
           
           return {
             id: id,
-            title: course.title || 'Untitled Course',
+            course_title: course.course_title || 'Untitled Course',
             description: course.description || 'No description available',
-            image: course.image || '',
+            course_image: course.course_image || '',
             type: course.type || 'Unknown',
             price: course.price,
             org_id: course.org_id,
@@ -68,9 +69,7 @@ const MyCoursesPage = () => {
         setCourses(transformedCourses);
       } catch (err: any) {
         console.error('Error fetching courses:', err.response?.data || err.message);
-        setError('Failed to load courses');
         setAlertMsg('Failed to load courses');
-        setAlertSeverity('error');
         setAlertOpen(true);
       } finally {
         setIsLoading(false);
@@ -103,7 +102,7 @@ const MyCoursesPage = () => {
       
       // Filter by search query
       const searchMatches = !searchQuery.trim() ? true : (
-        (course.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        (course.course_title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
          course.description?.toLowerCase().includes(searchQuery.toLowerCase()))
       );
       
@@ -225,9 +224,9 @@ const MyCoursesPage = () => {
             <MyCourseCard
               key={course.id}
               id={course.id.toString()}
-              title={course.title || 'Untitled Course'}
+              title={course.course_title || 'Untitled Course'}
               desc={(course.description && course.description.split('\n')[0]) || 'No description available'}
-              imgSrc={course.image || ''}
+              imgSrc={course.course_image || ''}
               link={`/my-courses/${course.id}`}
               tag={course.price === null ? 'Free' : `₦${course.price}`}
               isStyleTwo={true}

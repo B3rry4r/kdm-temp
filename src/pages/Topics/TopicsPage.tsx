@@ -67,7 +67,6 @@ const TopicsPage = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMsg, setAlertMsg] = useState('');
-  const [alertSeverity, setAlertSeverity] = useState<'purple' | 'success' | 'error'>('purple');
 
   // Find topic details
   const topic = topicId ? topics.find((t) => t.id === parseInt(topicId)) : null;
@@ -218,12 +217,10 @@ const TopicsPage = () => {
       await navigator.clipboard.writeText(postUrl);
       console.log("Copied post URL:", postUrl);
       setAlertMsg('Topic link copied to clipboard!');
-      setAlertSeverity('success');
       setAlertOpen(true);
     } catch (err) {
       console.error("Failed to copy post link:", err);
       setAlertMsg('Failed to copy topic link');
-      setAlertSeverity('error');
       setAlertOpen(true);
     }
   };

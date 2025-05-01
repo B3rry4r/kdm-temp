@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import ContentCard from "../HomePage/HomePageComponents/ContentCard";
 import RightSideBar from "../../components/RightSideBar/RightSideBar";
 import { useAuth } from "../../context/AuthContext/AuthContext";
-import AlertMessage from '../../components/AlertMessage';
 
 // Interface for saved posts response (same as ContentCard)
 interface SavedPost {
@@ -71,9 +70,7 @@ const SavedPosts = () => {
   const [savedPosts, setSavedPosts] = useState<SavedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [alertOpen, setAlertOpen] = useState(false);
-  const [alertMsg, setAlertMsg] = useState('');
-  const [alertSeverity, setAlertSeverity] = useState<'success' | 'error'>('success');
+
 
   useEffect(() => {
     const fetchSavedPosts = async () => {
@@ -137,12 +134,6 @@ const SavedPosts = () => {
             />
           ))
         )}
-        <AlertMessage
-          open={alertOpen}
-          message={alertMsg}
-          severity="purple"
-          onClose={() => setAlertOpen(false)}
-        />
       </div>
       <div className="flex-[3] max-sm:hidden overflow-y-auto h-full">
         <RightSideBar />

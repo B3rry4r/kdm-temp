@@ -32,7 +32,7 @@ const CommentPage = () => {
       setError(null);
       try {
         // Fetch post details
-        console.log("started post get");
+        console.log("started post get", alertSeverity);
         const postResponse = await apiClient.get(`/post/${postId}`);
         console.log("Post API response:", postResponse.data);
         setPost(postResponse.data);

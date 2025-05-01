@@ -224,7 +224,7 @@ const InstitutionsPage = () => {
             type="text"
             placeholder="Enter code"
             className="w-full p-2 border rounded-md mb-4"
-            onChange={(e) => setJoinError(null)}
+            onChange={() => setJoinError(null)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 handleModalButtonClick((e.target as HTMLInputElement).value);

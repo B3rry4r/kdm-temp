@@ -9,16 +9,7 @@ interface ModalProps {
 }
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, width = 'w-96', children }) => {
-  // const [isLoading, setIsLoading] = useState(false);
 
-  // const handleAction = async (action: () => Promise<void> | void) => {
-  //   setIsLoading(true);
-  //   try {
-  //     await action();
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
 
   if (!isOpen) return null;
 

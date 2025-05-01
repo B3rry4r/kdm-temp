@@ -2,7 +2,6 @@ import { useState } from "react";
 import UserCard from "../../HomePage/HomePageComponents/UserCard";
 import { CloseSVG, CommentSVG, LikeSVG } from "../../../assets/icons/icons";
 import { useAuth } from "../../../context/AuthContext/AuthContext";
-import AlertMessage from '../../../components/AlertMessage';
 import { Smile } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 
@@ -35,8 +34,6 @@ const SingleComment = ({ comment, isNoInteractions }: Props) => {
   const [replies, setReplies] = useState<any[]>([]);
   const [likesCount, setLikesCount] = useState(comment.likes_count);
   const [liked, setLiked] = useState(comment.liked);
-  const [alertOpen, setAlertOpen] = useState(false);
-  const [alertMsg, setAlertMsg] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Fetch replies when comment count is clicked
@@ -257,12 +254,6 @@ const SingleComment = ({ comment, isNoInteractions }: Props) => {
           )}
         </div>
       </div>
-      <AlertMessage
-        open={alertOpen}
-        message={alertMsg}
-        severity="purple"
-        onClose={() => setAlertOpen(false)}
-      />
     </div>
   );
 };
