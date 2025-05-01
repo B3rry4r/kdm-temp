@@ -31,6 +31,7 @@ const NotificationsComponent = () => {
       try {
         setLoading(true);
         setError(null);
+        alertSeverity;
         const response = await apiClient.get<AccountActivitySettings>('/account/activity');
         console.log('GET /account/activity response:', JSON.stringify(response.data, null, 2));
         setForm({
