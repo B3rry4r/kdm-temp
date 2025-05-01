@@ -23,7 +23,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, width = 'w-96', children
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-[rgba(0,0,0,0.5)] max-sm:p-3 backdrop-blur-sm z-10000 flex items-center justify-center">
+    <div className="fixed inset-0 bg-[rgba(0,0,0,0.5)] max-sm:p-3 backdrop-blur-sm z-1000 flex items-center justify-center">
       <div className={`bg-white px-8 py-6 relative rounded-2xl shadow-lg ${width}`}>        
         <div className="flex relative justify-between items-center mb-4">
           {children ? null : <div />}

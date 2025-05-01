@@ -82,19 +82,16 @@ const SingleEventPage: React.FC = () => {
 
         // Fetch event details
         const eventResponse = await apiClient2.get<Event>(`/event/${id}`);
-        console.log('GET /event/${id} response:', JSON.stringify(eventResponse.data, null, 2));
         const eventData = eventResponse.data;
         setEvent(eventData);
         setHasRegistered(eventData.registered);
 
         // Fetch related events
         const eventsResponse = await apiClient2.get<Event[]>('/events');
-        console.log('GET /events response:', JSON.stringify(eventsResponse.data, null, 2));
         setRelatedEvents(eventsResponse.data.slice(0, 5));
 
         // Fetch speakers
         const speakersResponse = await apiClient2.get<Speaker[]>(`/event/speakers/${id}`);
-        console.log('GET /event/speakers/${id} response:', JSON.stringify(speakersResponse.data, null, 2));
         setSpeakers(speakersResponse.data);
 
         // If tx_ref exists, verify the payment
@@ -139,7 +136,6 @@ const SingleEventPage: React.FC = () => {
         tx_ref: txRef,
       };
       const response = await apiClient.post('/event/register/complete', payload);
-      console.log('POST /event/register/complete response:', JSON.stringify(response.data, null, 2));
 
       if (response.data.message === 'Event registration successful') {
         setPaymentStatus('success');
@@ -185,9 +181,7 @@ const SingleEventPage: React.FC = () => {
         redirect_url: redirectUrl,
       };
 
-      console.log('Event registration payload:', JSON.stringify(payload, null, 2));
       const response = await apiClient.post('/event/register', payload);
-      console.log('POST /event/register response:', JSON.stringify(response.data, null, 2));
 
       // For free events, mark as registered immediately
       if (!event?.price || event.price === '0' || event.price.toLowerCase() === 'free') {
@@ -275,7 +269,7 @@ const SingleEventPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="w-full max-sm:w-full h-full flex items-center justify-center">
+      <div className="max-2xl:w-[80%] max-lg:w-full max-sm:w-full h-full flex items-center justify-center">
         <div className="loader"></div>
       </div>
     );
@@ -298,7 +292,7 @@ const SingleEventPage: React.FC = () => {
   }
 
   return (
-    <div className="w-[80%] max-sm:w-full overflow-y-scroll h-full flex flex-col gap-3 max-sm:p-4 p-10 border-r border-gray-200">
+    <div className="max-lg:w-full w-[80%] overflow-y-scroll h-full flex flex-col gap-3 max-sm:p-4 p-10 border-r border-gray-200">
       <Modal isOpen={isModalOpen} onClose={handleModalClose} width="w-90">
         {renderModalContent()}
       </Modal>
@@ -353,7 +347,7 @@ const SingleEventPage: React.FC = () => {
       {speakers.length > 0 && (
         <>
           <h1 className="font-bold text-2xl mt-5">Meet Our Speakers</h1>
-          <div className="grid mt-5 mb-3 w-full grid-cols-4 max-sm:grid-cols-2 gap-2">
+          <div className="grid mt-5 mb-3 w-full grid-cols-4 max-lg:grid-cols-2 max-sm:grid-cols-2 gap-2">
             {speakers.map((speaker) => (
               <Speakers
                 key={speaker.id}
@@ -370,7 +364,7 @@ const SingleEventPage: React.FC = () => {
 
       {/* More Events Like This */}
       <h1 className="font-bold text-2xl mt-5">More Events Like This</h1>
-      <div className="grid grid-cols-3 max-sm:grid-cols-1 gap-3">
+      <div className="grid grid-cols-3 max-lg:grid-cols-2 max-sm:grid-cols-1 gap-3">
         {relatedEvents.length > 0 ? (
           relatedEvents.map((event) => (
             <Events key={event.id} event={event} height="90" />

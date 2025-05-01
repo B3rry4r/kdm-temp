@@ -12,7 +12,7 @@ const Layout = (props: Props) => {
   return (
     <div className="w-full">
       
-      <div className={`${IsActive ? 'bg-[rgba(249,243,253,1)] ' : 'bg-white'} w-11 h-11 items-center justify-center rounded-full hidden max-sm:flex fixed p-3 top-1 left-2 z-999 flex-col gap-1`}
+      <div className={`${IsActive ? 'bg-[rgba(249,243,253,1)] ' : 'bg-white'} w-11 h-11 items-center justify-center rounded-full hidden max-md:flex fixed p-3 top-1 left-2 z-999 flex-col gap-1`}
       onClick={()=>{
         setIsActive(!IsActive)
         console.log('clidked');
@@ -24,12 +24,12 @@ const Layout = (props: Props) => {
         <div className="w-full h-[2px] rounded-lg bg-black"></div>
       </div>
       <Header />
-      <div className={`flex ${IsActive ? 'z-99' : ''} pt-[68px] max-sm:pt-[58px] max-sm:pl-0 h-screen bg-[rgba(249,243,253,1)] pl-18`}>
+      <div className={`flex ${IsActive ? 'z-99' : ''} pt-[68px] max-sm:pt-[58px] max-md:pl-0 max-lg:pl-10 max-md:pl-0 h-screen bg-[rgba(249,243,253,1)] pl-18`}>
         <div
-          className={`flex-[2] max-sm:absolute max-sm:bg-[rgba(249,243,253,1)] max-sm:z-99  max-sm:h-full max-sm:left-0 max-sm:top-0 overflow-y-auto ${
+          className={`flex-[2] max-md:absolute max-md:bg-[rgba(249,243,253,1)] max-md:z-99  max-md:h-full max-md:left-0 max-md:top-0 overflow-y-auto ${
             IsActive
-              ? "z-100 max-sm:w-[80%] max-sm:left-[-0%] max-sm:h-[800px] max-sm:pt-20"
-              : "max-sm:left-[-120%]"
+              ? "z-100 max-md:w-[80%] max-md:left-[-0%] max-md:h-[800px] max-md:pt-20"
+              : "max-md:left-[-120%]"
           }`}
         >
           {/* Left Navbar Content */}

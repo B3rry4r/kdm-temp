@@ -5,6 +5,9 @@ import ContentCard from "../HomePage/HomePageComponents/ContentCard";
 import SingleComment from "./SingleComment/SingleComment";
 import { useAuth } from "../../context/AuthContext/AuthContext";
 import { useState, useEffect } from "react";
+import AlertMessage from '../../components/AlertMessage';
+import EmojiPicker from 'emoji-picker-react';
+import { Smile } from 'lucide-react';
 
 const CommentPage = () => {
   const navigate = useNavigate();
@@ -15,6 +18,10 @@ const CommentPage = () => {
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMsg, setAlertMsg] = useState('');
+  const [alertSeverity, setAlertSeverity] = useState<'success' | 'error'>('success');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Fetch post details and comments when postId changes
   useEffect(() => {
@@ -74,15 +81,27 @@ const CommentPage = () => {
       const commentsResponse = await apiClient.get(`/post/comments/${postId}`);
       setComments(commentsResponse.data);
       setNewComment("");
+      setAlertMsg('Comment posted successfully');
+      setAlertSeverity('success');
+      setAlertOpen(true);
     } catch (err: any) {
       console.error("Error posting comment:", err);
-      alert("Failed to post comment");
+      setError("Failed to post comment");
+      setAlertMsg('Failed to post comment');
+      setAlertSeverity('error');
+      setAlertOpen(true);
     }
   };
 
   // Handle navigation back
   const handleEnrollClick = () => {
     navigate(`/`);
+  };
+
+  // Handle emoji selection
+  const onEmojiClick = (emojiObject: any) => {
+    setNewComment(prevComment => prevComment + emojiObject.emoji);
+    setShowEmojiPicker(false);
   };
 
   // Loading and error states
@@ -144,9 +163,9 @@ const CommentPage = () => {
         <div className="w-full bg-[rgba(255,255,255,0.3)] mb-3 rounded-lg backdrop-blur-xs">
           <div className="bg-white p-2 flex flex-col rounded-xl">
             <div className="flex justify-between items-center">
-              <div className="flex items-center">
+              <div className="flex items-center w-full">
                 <div className="min-w-8 max-w-8 max-h-8 min-h-8 rounded-full overflow-hidden bg-gray-300">
-                {user && user.profile_picture ? (
+                  {user && user.profile_picture ? (
                     <img
                       src={user.profile_picture}
                       alt="user image"
@@ -159,21 +178,31 @@ const CommentPage = () => {
                   ) : null}
                 </div>
                 <textarea
-                  className="w-full h-[50px] mt-2 p-2 resize-none text-[12px] outline-none"
+                  className="w-full h-[50px] ml-2 p-2 resize-none text-sm outline-none"
                   placeholder="Type your message..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                 ></textarea>
               </div>
-              <div className="flex gap-1">
-                {/* <div className="w-4 h-4 bg-gray-400 rounded-full"></div>
-                <div className="w-4 h-4 bg-gray-400 rounded-full"></div> */}
+              <div className="flex gap-2 ml-2">
+                <div className="relative">
+                  <Smile 
+                    size={20} 
+                    className="cursor-pointer text-gray-500" 
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  />
+                  {showEmojiPicker && (
+                    <div className="absolute bottom-10 right-0 z-50">
+                      <EmojiPicker onEmojiClick={onEmojiClick} />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             <div className="w-full mt-5 flex justify-end">
               <button
                 onClick={handlePostComment}
-                className="px-5 py-1 bg-[#FFD30F] font-bold text-xs rounded-sm"
+                className="px-5 py-1 bg-[#FFD30F] font-bold text-sm rounded-sm"
               >
                 Post
               </button>
@@ -192,9 +221,15 @@ const CommentPage = () => {
           ))}
         </div>
       </div>
-      <div className="overflow-y-scroll max-sm:hidden flex-[3]">
+      <div className="overflow-y-scroll max-md:flex-[2] max-sm:hidden max-lg:hidden flex-[3]">
         <RightSideBar />
       </div>
+      <AlertMessage
+        open={alertOpen}
+        message={alertMsg}
+        severity="purple"
+        onClose={() => setAlertOpen(false)}
+      />
     </div>
   );
 };

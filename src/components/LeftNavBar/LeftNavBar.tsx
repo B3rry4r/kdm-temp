@@ -77,7 +77,7 @@ const LeftNavBar = () => {
   return (
     <div className="w-full h-full relative">
       <div
-        className={`w-full max-sm:absolute max-sm:bg-[rgba(249,243,253,1)] transition-all z-29 h-full border-r flex flex-col gap-6 border-gray-200 pl-10 py-10 px-5`}
+        className={`w-full max-sm:absolute max-sm:bg-[rgba(249,243,253,1)] transition-all z-29 h-full border-r flex flex-col gap-6 border-gray-200 max-md:pl-3 max-lg:pl-0 pl-10 py-10 px-5`}
       >
         <div className="flex flex-col gap-6">
           {navItems.map((item) => {
@@ -134,7 +134,7 @@ const LeftNavBar = () => {
           <div className="flex mt-3 flex-col mb-10 gap-3">
             <h2 className="text-sm font-semibold">Download App</h2>
             <a
-              href="#"
+              href="https://play.google.com/store/apps/details?id=com.esivue.kudi_mata&hl=en&pli=1"
               className="flex items-center bg-black text-white px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity"
             >
               <img src={google} alt="Google Play" className="w-7 h-7 mr-2" />
@@ -144,7 +144,7 @@ const LeftNavBar = () => {
               </div>
             </a>
             <a
-              href="#"
+              href="https://apps.apple.com/ng/app/kudimata/id1636961343"
               className="flex items-center bg-black text-white px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity"
             >
               <img src={apple} alt="App Store" className="w-6 h-6 mr-2" />

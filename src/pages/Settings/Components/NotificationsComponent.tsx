@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext/AuthContext';
+import AlertMessage from '../../../components/AlertMessage';
 
 // Interface for account activity settings
 interface AccountActivitySettings {
@@ -20,6 +21,9 @@ const NotificationsComponent = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMsg, setAlertMsg] = useState('');
+  const [alertSeverity, setAlertSeverity] = useState<'success' | 'error'>('success');
 
   // Fetch initial account activity settings
   useEffect(() => {
@@ -67,10 +71,14 @@ const NotificationsComponent = () => {
       };
       const response = await apiClient.post('/account/activity', payload);
       console.log('POST /account/activity response:', JSON.stringify(response.data, null, 2));
-      alert('Preferences saved successfully');
+      setAlertMsg('Preferences saved successfully');
+      setAlertSeverity('success');
+      setAlertOpen(true);
     } catch (err: any) {
       console.error('Error saving account activity:', err.response?.data || err.message);
-      setError('Failed to save preferences');
+      setAlertMsg('Failed to save preferences');
+      setAlertSeverity('error');
+      setAlertOpen(true);
     } finally {
       setSaving(false);
     }
@@ -156,7 +164,7 @@ const NotificationsComponent = () => {
       >
         {saving ? 'Saving...' : 'Save Preferences'}
       </button>
-      {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
+      <AlertMessage open={alertOpen} message={alertMsg} severity="purple" onClose={() => setAlertOpen(false)} />
     </div>
   );
 };

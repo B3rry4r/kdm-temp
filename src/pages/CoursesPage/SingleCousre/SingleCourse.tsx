@@ -5,6 +5,7 @@ import { ReactNode } from 'react';
 import DropDownComponents from './DropDownComponents/DropDownComponents';
 import { useAuth } from '../../../context/AuthContext/AuthContext';
 import Modal from '../../Registration/Modal';
+import AlertMessage from '../../../components/AlertMessage';
 
 interface Course {
   id: number;
@@ -44,6 +45,8 @@ const SingleCourse = () => {
   const [isEnrollButtonLoading, setIsEnrollButtonLoading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'success' | 'failed' | null>(null);
   const [code, setCode] = useState('');
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMsg, setAlertMsg] = useState('');
 
   // Fetch course data
   useEffect(() => {
@@ -58,19 +61,16 @@ const SingleCourse = () => {
         const response = await apiClient.get<Course>(`/course/${courseId}`);
         console.log('Single course API response:', JSON.stringify(response.data, null, 2));
         const courseData = response.data;
-        // Validate lesson_count
-        const totalLessons = courseData.sections.reduce((sum, section) => sum + section.lessons.length, 0);
-        console.log('Lesson count validation:', {
-          course_lesson_count: courseData.lesson_count,
-          total_section_lessons: totalLessons,
-          matches: courseData.lesson_count === totalLessons
-        });
-        if (courseData.lesson_count !== totalLessons) {
-          console.warn('Lesson count mismatch:', {
-            course_lesson_count: courseData.lesson_count,
-            total_section_lessons: totalLessons
-          });
+        
+        // Ensure enrolled status is properly set
+        if (typeof courseData.enrolled === 'undefined') {
+          console.warn('Enrolled status missing in API response, defaulting to false');
+          courseData.enrolled = false;
         }
+        
+        // Log enrollment status for debugging
+        console.log(`Course enrollment status: ${courseData.enrolled ? 'Enrolled' : 'Not enrolled'}`);
+        
         setCourse(courseData);
       } catch (err: any) {
         console.error('Error fetching course:', err.response?.data || err.message);
@@ -179,23 +179,37 @@ const SingleCourse = () => {
   };
 
   const handleEnrollClick = () => {
-    if (!course || course.enrolled || isEnrollButtonLoading) {
-      if (course?.enrolled) {
-        console.log('Navigating to /my-courses, courseId:', courseId);
-        navigate('/my-courses');
-      } else {
-        console.log('Already enrolled, no course, or loading:', courseId, isEnrollButtonLoading);
-      }
+    // Double check course exists
+    if (!course) {
+      setAlertMsg('Course information not available');
+      setAlertOpen(true);
       return;
     }
+    
+    // Check if already enrolled
+    if (course.enrolled) {
+      console.log('User is already enrolled, navigating to My Courses');
+      navigate('/my-courses');
+      return;
+    }
+    
+    // Check if enrollment is in progress
+    if (isEnrollButtonLoading) {
+      console.log('Enrollment in progress, please wait');
+      return;
+    }
+    
+    // Handle organization courses
     if (course.type === 'Org') {
       setModalType('org');
       setIsModalOpen(true);
       setEnrollError(null);
       setCode('');
-    } else {
-      enrollCourse();
+      return;
     }
+    
+    // Proceed with enrollment for free or paid courses
+    enrollCourse();
   };
 
   const handleModalClose = () => {
@@ -320,16 +334,25 @@ const SingleCourse = () => {
       <Modal isOpen={isModalOpen} onClose={handleModalClose} width="w-90">
         {renderModalContent()}
       </Modal>
-      <div className="w-full flex-[4] relative max-sm:p-4 flex flex-col gap-2 p-10">
-        <div className="hidden fixed z-30 w-full bg-white p-4 bottom-0 left-0 max-sm:flex justify-between items-center">
+      <div className="w-full flex-[4] relative max-sm:p-4 max-lg:p-6 flex flex-col gap-2 p-10">
+        <div className="hidden fixed z-30 w-full bg-white p-4 bottom-0 max-sm:left-0 gap-3 max-lg:flex max-lg:right-0 max-lg:w-130 max-sm:flex justify-between items-center">
           {renderTagAndPrice()}
-          <button
-            className={`cursor-pointer w-30 p-3 font-bold bg-[#ffd30f] border-none outline-none rounded-lg ${course.enrolled || isEnrollButtonLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            onClick={handleEnrollClick}
-            disabled={isEnrollButtonLoading}
-          >
-            {course.enrolled ? 'Start Course' : isEnrollButtonLoading ? <span className="loader w-full"></span> : 'Enroll Now'}
-          </button>
+          {course.enrolled ? (
+            <button
+              onClick={() => navigate(`/my-courses/${courseId}`)}
+              className="w-full text-white py-3 bg-[#68049B] font-bold rounded-md"
+            >
+              View Enrolled Course
+            </button>
+          ) : (
+            <button
+              onClick={handleEnrollClick}
+              disabled={isEnrollButtonLoading}
+              className="w-full text-white py-3 bg-[#68049B] font-bold rounded-md disabled:opacity-50"
+            >
+              {isEnrollButtonLoading ? <span className="loader"></span> : 'Enroll Now'}
+            </button>
+          )}
         </div>
         <div
           onClick={() => navigate('/courses/course')}
@@ -345,7 +368,7 @@ const SingleCourse = () => {
         </div>
         <p className="text-sm font-bold">{course.subtitle}</p>
         <p className="text-xs">{course.description}</p>
-        <div className="w-full max-sm:flex sticky mt-4 top-5 rounded-lg bg-white p-5 hidden gap-2 flex-col">
+        <div className="w-full max-sm:flex max-lg:flex sticky mt-4 top-5 rounded-lg bg-white p-5 hidden gap-2 flex-col">
           <p className="text-lg font-bold">Course Includes</p>
           <DynamicRow icon={<TimerSVG size={15} />} text="Duration TBD" />
           <DynamicRow icon={<ListSVG size={15} />} text={`${course.lesson_count} Lessons`} />
@@ -381,22 +404,37 @@ const SingleCourse = () => {
           </div>
         </div>
       </div>
-      <div className="flex-[3] max-sm:hidden mt-31 h-auto">
-        <div className="w-[70%] sticky top-5 rounded-lg bg-white p-5 flex gap-2 flex-col">
+      <div className="flex-[3] max-sm:hidden max-lg:hidden mt-31 h-auto">
+        <div className="w-[70%] max-lg:w-[95%] sticky top-5 rounded-lg bg-white p-5 flex gap-2 flex-col">
           {renderTagAndPrice()}
-          <button
-            className={`cursor-pointer w-full p-3 font-bold bg-[#ffd30f] border-none outline-none rounded-lg ${course.enrolled || isEnrollButtonLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            onClick={handleEnrollClick}
-            disabled={isEnrollButtonLoading}
-          >
-            {course.enrolled ? 'Start Course' : isEnrollButtonLoading ? <span className="loader w-full"></span> : 'Enroll Now'}
-          </button>
+          {course.enrolled ? (
+            <button
+              onClick={() => navigate(`/my-courses/${courseId}`)}
+              className="w-full text-white py-3 bg-[#68049B] font-bold rounded-md"
+            >
+              View Enrolled Course
+            </button>
+          ) : (
+            <button
+              onClick={handleEnrollClick}
+              disabled={isEnrollButtonLoading}
+              className="w-full text-white py-3 bg-[#FFD30F] font-bold rounded-md disabled:opacity-50"
+            >
+              {isEnrollButtonLoading ? <span className="loader"></span> : 'Enroll Now'}
+            </button>
+          )}
           <p className="text-sm mt-4 font-medium">Course Includes</p>
           <DynamicRow icon={<TimerSVG size={15} />} text="Duration TBD" />
           <DynamicRow icon={<ListSVG size={15} />} text={`${course.lesson_count} Lessons`} />
           <DynamicRow icon={<CertificateSVG size={15} />} text="Certificate of Completion" />
         </div>
       </div>
+      <AlertMessage
+        open={alertOpen}
+        onClose={() => setAlertOpen(false)}
+        message={alertMsg}
+        severity="purple"
+      />
     </div>
   );
 };

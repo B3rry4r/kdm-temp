@@ -143,14 +143,14 @@ const RightSideBar: React.FC = () => {
   };
 
   return (
-    <div className="w-full h-full py-10 pl-10 pr-30 flex flex-col gap-10 border-l border-gray-200">
+    <div className="w-full h-full py-10 pr-20 max-lg:pr-0 max-xl:py-6 pl-6 max-xl:pl-4 pr-6 max-xl:pr-4 flex flex-col gap-10 max-xl:gap-6 border-l border-gray-200 max-lg:hidden">
       {/* Ads Carousel */}
-      <div className="w-full min-h-[150px]">
+      <div className="w-full min-h-[150px] max-lg:min-h-[120px]">
         <CarouselComponent>{adSlides()}</CarouselComponent>
       </div>
 
       {/* First Events Carousel */}
-      <div className="w-full min-h-[380px] flex flex-col items-center justify-center">
+      <div className="w-full min-h-[350px] max-lg:min-h-[300px] max-xl:min-h-[320px] flex flex-col items-center justify-center">
         {error && <p className="text-red-500">{error}</p>}
         {loadingEvents ? (
           <p className="text-gray-500">Loading events...</p>
@@ -160,7 +160,7 @@ const RightSideBar: React.FC = () => {
       </div>
 
       {/* Second Events Carousel */}
-      <div className="w-full min-h-[380px] flex flex-col items-center justify-center">
+      <div className="w-full min-h-[350px] max-lg:min-h-[300px] max-xl:min-h-[320px] flex flex-col items-center justify-center">
         {error && <p className="text-red-500">{error}</p>}
         {loadingEvents ? (
           <p className="text-gray-500">Loading events...</p>

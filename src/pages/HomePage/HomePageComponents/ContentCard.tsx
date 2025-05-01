@@ -7,7 +7,6 @@ import {
   DeleteSVG,
   EditSVG,
   FbSVG,
-  FlagSVG,
   FollowPlus,
   IGSVG,
   LikeSVG,
@@ -21,7 +20,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext/AuthContext";
 import { useData } from "../../../context/DataContext/DataContext";
 import { usePostUpdate } from "../../../context/PostUpdateContext/PostUpdateContext";
-import { Image as ImageIcon, MinusCircle, Smile } from "lucide-react";
+import { ChevronDown, Image as ImageIcon, MinusCircle, Smile } from "lucide-react";
+import AlertMessage from '../../../components/AlertMessage';
+import EmojiPicker from 'emoji-picker-react';
 
 // Fallback profile image
 const defaultProfileImage = "https://via.placeholder.com/150?text=User";
@@ -118,6 +119,10 @@ const ContentCard = (props: Props) => {
   const [images, setImages] = useState<File[]>([]);
   const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMsg, setAlertMsg] = useState('');
+  const [alertSeverity, setAlertSeverity] = useState<'success' | 'error'>('success');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Fetch initial saved state and followers
   useEffect(() => {
@@ -206,7 +211,10 @@ const ContentCard = (props: Props) => {
       }
     } catch (err: any) {
       console.error('Like error:', err.response?.data || err.message);
-      alert(err.response?.data?.error || 'Failed to like/unlike post. Please try again.');
+      setAlertMsg('Failed to like/unlike post. Please try again.');
+      setAlertSeverity('error');
+      console.log(alertSeverity);
+      setAlertOpen(true);
     } finally {
       setIsLiking(false);
     }
@@ -239,7 +247,9 @@ const ContentCard = (props: Props) => {
       }
     } catch (err: any) {
       console.error('Save error details:', err.response?.data || err.message);
-      alert(err.response?.data?.error || 'Failed to save/unsave post. Please try again.');
+      setAlertMsg('Failed to save/unsave post. Please try again.');
+      setAlertSeverity('error');
+      setAlertOpen(true);
     } finally {
       setIsSaving(false);
     }
@@ -273,7 +283,9 @@ const ContentCard = (props: Props) => {
       }
     } catch (err: any) {
       console.error('Follow error:', err.response?.data || err.message);
-      alert(err.response?.data?.error || 'Failed to follow/unfollow user. Please try again.');
+      setAlertMsg('Failed to follow/unfollow user. Please try again.');
+      setAlertSeverity('error');
+      setAlertOpen(true);
     } finally {
       setIsFollowingLoading(false);
     }
@@ -336,17 +348,23 @@ const ContentCard = (props: Props) => {
     }
 
     if (!postContent.trim()) {
-      alert("Post content cannot be empty");
+      setAlertMsg("Post content cannot be empty");
+      setAlertSeverity('error');
+      setAlertOpen(true);
       return;
     }
 
     if (!selectedTopicId) {
-      alert("Please select a topic");
+      setAlertMsg("Please select a topic");
+      setAlertSeverity('error');
+      setAlertOpen(true);
       return;
     }
 
     if (!props.id) {
-      alert("Post ID is missing");
+      setAlertMsg("Post ID is missing");
+      setAlertSeverity('error');
+      setAlertOpen(true);
       return;
     }
 
@@ -370,7 +388,9 @@ const ContentCard = (props: Props) => {
       closeModal();
     } catch (err: any) {
       console.error('Edit post error:', err.response?.data || err.message);
-      alert(err.response?.data?.error || 'Failed to edit post. Please try again.');
+      setAlertMsg(err.response?.data?.error || 'Failed to edit post. Please try again.');
+      setAlertSeverity('error');
+      setAlertOpen(true);
       setIsSubmitting(false);
     }
   };
@@ -383,7 +403,9 @@ const ContentCard = (props: Props) => {
     }
 
     if (!props.id) {
-      alert("Post ID is missing");
+      setAlertMsg("Post ID is missing");
+      setAlertSeverity('error');
+      setAlertOpen(true);
       return;
     }
 
@@ -395,7 +417,9 @@ const ContentCard = (props: Props) => {
       closeModal();
     } catch (err: any) {
       console.error('Delete post error:', err.response?.data || err.message);
-      alert(err.response?.data?.error || 'Failed to delete post. Please try again.');
+      setAlertMsg(err.response?.data?.error || 'Failed to delete post. Please try again.');
+      setAlertSeverity('error');
+      setAlertOpen(true);
       setIsSubmitting(false);
     }
   };
@@ -420,7 +444,9 @@ const ContentCard = (props: Props) => {
       setIsCopied(false);
     } catch (err) {
       console.error('Failed to copy post link:', err);
-      alert('Failed to copy post link');
+      setAlertMsg('Failed to copy post link');
+      setAlertSeverity('error');
+      setAlertOpen(true);
     }
   };
 
@@ -450,6 +476,12 @@ const ContentCard = (props: Props) => {
     console.log('Instagram share initiated (copy link provided)');
   };
 
+  // Handle emoji selection
+  const onEmojiClick = (emojiObject: any) => {
+    setPostContent(prevContent => prevContent + emojiObject.emoji);
+    setShowEmojiPicker(false);
+  };
+
   const renderModalContent = () => {
     if (!flow) return null;
 
@@ -467,13 +499,14 @@ const ContentCard = (props: Props) => {
               }
               setIsTopicSelectorOpen(true);
             }}
-            className="font-bold text-xs py-2 px-2 bg-gray-200 w-30 rounded-lg cursor-pointer"
+            className="font-bold flex items-center gap-2 text-xs py-2 px-2 bg-gray-200 w-30 rounded-lg cursor-pointer"
           >
             {dataLoading ? <div className="loading"></div> : dataError ? "Error" : selectedTopic?.name || "Select Topic"}
+            <ChevronDown size={20} />
           </div>
           <div className="bg-white p-2 flex flex-col items-end rounded-xl">
             <textarea
-              className="w-full h-[50px] p-2 resize-none text-[10px] outline-none"
+              className="w-full h-[50px] p-2 resize-none text-sm outline-none"
               placeholder="Type your message..."
               value={postContent}
               onChange={(e) => {
@@ -506,77 +539,59 @@ const ContentCard = (props: Props) => {
                 ))}
               </div>
             )}
-            <div className="flex border-b border-gray-300 w-full justify-between items-center p-2 mt-2">
-              <div className="flex gap-2">
-                <label htmlFor="image-upload" className="cursor-pointer">
-                  <ImageIcon size={16} />
-                </label>
-                <Smile size={16} className="cursor-pointer" />
-                <input
-                  type="file"
-                  id="image-upload"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageChange}
-                  className="hidden"
-                  disabled={isSubmitting}
+            <div className="flex gap-2">
+              <label htmlFor="image-upload" className="cursor-pointer">
+                <ImageIcon size={20} />
+              </label>
+              <div className="relative">
+                <Smile 
+                  size={20} 
+                  className="cursor-pointer" 
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                 />
-              </div>
-            </div>
-            <button
-              onClick={handleEditPost}
-              disabled={isSubmitting}
-              className="mt-3 px-5 w-25 py-2 cursor-pointer flex items-center justify-center bg-[#FFD30F] font-bold text-xs rounded-sm text-black disabled:opacity-50"
-            >
-              {isSubmitting ? <div className="loader"></div> : 'Send '}
-            </button>
-          </div>
-          {isTopicSelectorOpen && (
-            <Modal isOpen={isTopicSelectorOpen} onClose={() => setIsTopicSelectorOpen(false)}>
-              <div className="w-full flex flex-col gap-3">
-                <h1 className="font-bold text-xl">Select Topic</h1>
-                {dataLoading ? (
-                  <p>Loading topics...</p>
-                ) : dataError ? (
-                  <p className="text-red-500">{dataError}</p>
-                ) : topics.length === 0 ? (
-                  <p>No topics available</p>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {topics.map((topic) => (
-                      <div
-                        key={topic.id}
-                        onClick={() => handleTopicSelect(topic.id)}
-                        className="p-2 cursor-pointer hover:bg-gray-100 rounded"
-                      >
-                        {topic.name}
-                      </div>
-                    ))}
+                {showEmojiPicker && (
+                  <div className="absolute bottom-10 right-0 z-50">
+                    <EmojiPicker onEmojiClick={onEmojiClick} />
                   </div>
                 )}
               </div>
-            </Modal>
-          )}
+              <input
+                type="file"
+                id="image-upload"
+                accept="image/*"
+                multiple
+                onChange={handleImageChange}
+                className="hidden"
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+          <button
+            onClick={handleEditPost}
+            disabled={isSubmitting}
+            className="mt-3 px-5 w-25 py-2 cursor-pointer flex items-center justify-center bg-[#FFD30F] font-bold text-sm rounded-sm text-black disabled:opacity-50"
+          >
+            {isSubmitting ? <div className="loader"></div> : 'Send'}
+          </button>
         </div>
       );
     }
     if (flow === "delete") {
       return (
-        <div className="w-full flex flex-col gap-3">
-          <h1 className="min-w-[180px] font-bold text-xl">Delete Post</h1>
-          <p className="text-xs">Are you sure you want to delete this post?</p>
-          <div className="w-full flex gap-2 items-center">
+        <div className="w-full flex flex-col gap-4">
+          <h1 className="font-bold text-xl text-center">Delete Post</h1>
+          <p className="text-sm text-center">Are you sure you want to delete this post?</p>
+          <div className="flex w-full items-center justify-between gap-2">
             <button
               onClick={closeModal}
-              disabled={isSubmitting}
-              className="mt-3 px-5 w-full py-2 cursor-pointer bg-gray-300 font-bold text-xs rounded-sm disabled:opacity-50"
+              className="w-full py-2 border border-gray-300 rounded-lg text-gray-800 font-bold"
             >
-              Go Back
+              Cancel
             </button>
             <button
               onClick={handleDeletePost}
               disabled={isSubmitting}
-              className="mt-3 px-5 w-full py-2 cursor-pointer flex items-center justify-center bg-[#FFD30F] font-bold text-xs rounded-sm text-black disabled:opacity-50"
+              className="w-full py-2 bg-red-500 rounded-lg text-white font-bold disabled:opacity-50"
             >
               {isSubmitting ? <div className="loader"></div> : 'Delete'}
             </button>
@@ -625,7 +640,7 @@ const ContentCard = (props: Props) => {
 
   const navigateToComment = () => {
     if (!isAuthenticated || !user?.id) {
-      console.log('Unauthenticated user attempted to comment, redirecting to /login');
+      // console.log('Unauthenticated user attempted to comment, redirecting to /login');
       navigate('/login');
       return;
     }
@@ -651,6 +666,34 @@ const ContentCard = (props: Props) => {
   // Ensure isSelf is always boolean
   const isSelf = !!user?.id && props.userId === user.id.toString();
 
+  // Topic selector modal
+  {isTopicSelectorOpen && (
+    <Modal isOpen={isTopicSelectorOpen} onClose={() => setIsTopicSelectorOpen(false)}>
+      <div className="w-full flex flex-col gap-3">
+        <h1 className="font-bold text-xl">Select Topic</h1>
+        {dataLoading ? (
+          <p>Loading topics...</p>
+        ) : dataError ? (
+          <p className="text-red-500">{dataError}</p>
+        ) : topics.length === 0 ? (
+          <p>No topics available</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {topics.map((topic) => (
+              <div
+                key={topic.id}
+                onClick={() => handleTopicSelect(topic.id)}
+                className="p-2 cursor-pointer hover:bg-gray-100 rounded"
+              >
+                {topic.name}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Modal>
+  )}
+
   if (isLoading) {
     return (
       <div className="flex items-center w-full min-h-60 bg-white rounded-xl justify-center h-full">
@@ -660,7 +703,7 @@ const ContentCard = (props: Props) => {
   }
 
   return (
-    <div className="w-full bg-gray-100 rounded-xl p-4 flex flex-col gap-5 bg-white">
+    <div className="w-full bg-gray-100 rounded-xl p-4 max-md:p-3 flex flex-col gap-5 max-md:gap-3 bg-white">
       <div className="top flex items-center gap-2 justify-between">
         <div
           onMouseEnter={toggleProfileOpen}
@@ -668,7 +711,7 @@ const ContentCard = (props: Props) => {
           className="flex items-center relative gap-2"
         >
           {isProfileOpen ? (
-            <div className="w-50 flex flex-col p-4 gap-2 h-50 absolute top-[30px] z-2 left-0 bg-white border border-gray-200 rounded-lg">
+            <div className="w-50 flex flex-col p-4 gap-2 h-auto absolute top-[30px] z-2 left-0 bg-white border border-gray-200 rounded-lg">
               <div className="w-full flex items-center justify-between">
                 <div
                   className="avatar w-10 h-10 overflow-hidden rounded-full bg-gray-200 cursor-pointer"
@@ -697,7 +740,7 @@ const ContentCard = (props: Props) => {
             </div>
           ) : null}
           <div
-            className="avatar w-10 h-10 overflow-hidden rounded-full bg-gray-200 cursor-pointer"
+            className="avatar w-10 h-10 max-md:w-8 max-md:h-8 overflow-hidden rounded-full bg-gray-200 cursor-pointer"
             onClick={navToProfile}
           >
             <img
@@ -706,14 +749,14 @@ const ContentCard = (props: Props) => {
               alt="profilePicture"
             />
           </div>
-          <div className="name flex items-center flex gap-2">
-            <p className="text-sm max-sm:text-xs font-bold">{props.author}</p>
+          <div className="name flex items-center flex gap-2 max-md:gap-1">
+            <p className="text-sm max-sm:text-xs max-md:text-xs font-bold">{props.author}</p>
             <p className="text-xs text-gray-500">in</p>
-            <p className="text-sm max-sm:text-xs max-sm:hidden font-bold">
+            <p className="text-sm max-sm:text-xs max-md:text-xs max-sm:hidden font-bold">
               {props.institution}
             </p>
             <div className="line w-1 h-1 rounded-full bg-gray-500" />
-            <p className="text-xs text-gray-500">{props.time}</p>
+            <p className="text-xs max-md:text-[10px] text-gray-500">{props.time}</p>
           </div>
         </div>
         <div className="more relative">
@@ -727,7 +770,7 @@ const ContentCard = (props: Props) => {
           </div>
           {isMoreOpen ? (
             props.isSingleUser ? (
-              <div className="w-50 z-2 h-auto p-8 right-0 absolute top-3 border border-gray-200 rounded-lg bg-white flex gap-3 flex-col">
+              <div className="w-50 z-2 h-auto p-8 max-md:p-4 right-0 absolute top-3 border border-gray-200 rounded-lg bg-white flex gap-3 flex-col">
                 <div className="cursor-pointer" onClick={() => openFlow("edit")}>
                   <DynamicRow icon={<EditSVG size={20} />} text="Edit Post" />
                 </div>
@@ -744,7 +787,7 @@ const ContentCard = (props: Props) => {
                   />
                 </div>
                 {isCopied ? (
-                  <div className="w-60 max-sm:w-full rounded-lg p-2 bg-white absolute bottom-[-40px] left-0 flex items-center justify-between">
+                  <div className="w-60 max-sm:w-full max-md:w-[90%] rounded-lg p-2 bg-white absolute bottom-[-40px] left-0 flex items-center justify-between">
                     <p className="text-xs font-bold">Post Copied</p>
                     <div className="cursor-pointer" onClick={closeCopied}>
                       <CloseSVG size={15} />
@@ -753,7 +796,7 @@ const ContentCard = (props: Props) => {
                 ) : null}
               </div>
             ) : (
-              <div className="w-50 z-2 h-40 p-5 right-0 absolute top-3 border border-gray-200 rounded-lg bg-white flex gap-3 flex-col">
+              <div className="w-50 z-2 h-auto p-5 max-md:p-3 right-0 absolute top-3 border border-gray-200 rounded-lg bg-white flex gap-3 flex-col">
                 <div className={`cursor-pointer ${isSelf ? 'opacity-50 pointer-events-none' : ''}`} onClick={isSelf ? undefined : toggleFollow}>
                   <DynamicRow
                     icon={ isFollowing ?
@@ -770,11 +813,8 @@ const ContentCard = (props: Props) => {
                     text="Copy Post Link"
                   />
                 </div>
-                <div className="cursor-pointer" onClick={toggleReportOverlay}>
-                  <DynamicRow icon={<FlagSVG size={20} />} text="Report Post" />
-                </div>
                 {isCopied ? (
-                  <div className="w-60 max-sm:w-full rounded-lg p-2 bg-white absolute bottom-[-40px] left-0 flex items-center justify-between">
+                  <div className="w-60 max-sm:w-full max-md:w-[90%] rounded-lg p-2 bg-white absolute bottom-[-40px] left-0 flex items-center justify-between">
                     <p className="text-xs font-bold">Post Copied</p>
                     <div className="cursor-pointer" onClick={closeCopied}>
                       <CloseSVG size={15} />
@@ -787,10 +827,10 @@ const ContentCard = (props: Props) => {
         </div>
       </div>
       <div className="middle-text">
-        <p className="text-sm">{props.description}</p>
+        <p className="text-sm max-md:text-xs">{props.description}</p>
       </div>
       {props.image && (
-        <div className="img w-full h-[200px] bg-gray-200">
+        <div className="img w-full h-[200px] max-md:h-[180px] bg-gray-200">
           <img
             src={props.image}
             alt="content"
@@ -799,7 +839,7 @@ const ContentCard = (props: Props) => {
         </div>
       )}
       <div className="interactions flex items-center justify-between">
-        <div className="left flex items-center gap-2">
+        <div className="left flex items-center gap-2 max-md:gap-1">
           <div className="like flex relative items-center gap-1">
             <div onClick={toggleLike} className="cursor-pointer">
               <LikeSVG size={15} color={liked ? "#68049B" : "#544D58"} />
@@ -813,12 +853,12 @@ const ContentCard = (props: Props) => {
                 }
                 setIsLikeOpen(!isLikeOpen);
               }}
-              className="text-xs cursor-pointer text-gray-500"
+              className="text-xs max-md:text-[10px] cursor-pointer text-gray-500"
             >
               {likesCount}
             </p>
             {isLikeOpen ? (
-              <div className="w-80 p-8 flex flex-col gap-2 absolute bottom-[-250px] z-8 left-0 rounded-xl bg-white border border-gray-200 h-80">
+              <div className="w-80 p-8 max-md:p-4 flex flex-col gap-2 absolute bottom-[-250px] z-8 left-0 rounded-xl bg-white border border-gray-200 h-80">
                 <div className="w-full items-center justify-between flex">
                   <h1 className="font-bold">{likesCount} Likes</h1>
                   <div
@@ -845,10 +885,11 @@ const ContentCard = (props: Props) => {
             className="comment flex cursor-pointer items-center gap-1"
           >
             <CommentSVG size={15} />
-            <p className="text-xs text-gray-500">{props.comments}</p>
+            <p className="text-xs max-md:text-[10px] text-gray-500">{props.comments}</p>
           </div>
+
         </div>
-        <div className="right flex relative items-center gap-2">
+        <div className="right flex relative items-center gap-2 max-md:gap-1">
           <div onClick={toggleSave} className="cursor-pointer">
             <BookmarkSVG size={15} color={saved ? "#68049B" : "#544D58"} />
           </div>
@@ -859,7 +900,7 @@ const ContentCard = (props: Props) => {
             <ShareSVG size={15} />
           </div>
           {isShareOpen ? (
-            <div className="w-55 h-40 p-5 right-0 z-2 absolute top-3 border border-gray-200 rounded-lg bg-white flex gap-3 flex-col">
+            <div className="w-55 h-40 p-5 max-md:p-3 right-0 z-2 absolute top-3 border border-gray-200 rounded-lg bg-white flex gap-3 flex-col">
               <div className="cursor-pointer" onClick={handleCopyLink}>
                 <DynamicRow
                   icon={<CopyLinkSVG size={20} />}
@@ -916,6 +957,7 @@ const ContentCard = (props: Props) => {
           </div>
         ) : null}
       </Modal>
+      <AlertMessage open={alertOpen} onClose={() => setAlertOpen(false)} severity="purple" message={alertMsg} />
     </div>
   );
 };

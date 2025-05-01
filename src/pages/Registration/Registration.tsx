@@ -6,6 +6,9 @@ import corp from '../../assets/corp.png';
 import kids from '../../assets/kids.png';
 import Modal from './Modal';
 import { useAuth } from '../../context/AuthContext/AuthContext';
+import AlertMessage from '../../components/AlertMessage';
+import { useFormValidator, ValidationSchema } from '../../components/FormValidator';
+import { Eye, EyeOff } from 'lucide-react';
 
 interface Props {}
 
@@ -17,6 +20,8 @@ const Registration: React.FC<Props> = () => {
   const [form, setForm] = useState<any>({});
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMsg, setAlertMsg] = useState('');
 
   const openFlow = (type: 'login' | 'register', corper: boolean = false) => {
     setFlow(type);
@@ -38,13 +43,38 @@ const Registration: React.FC<Props> = () => {
     try {
       await action();
     } catch (error: any) {
-      alert(error.message || 'An error occurred');
+      setAlertMsg(error.message || 'An error occurred');
+      setAlertOpen(true);
     } finally {
       setLoading(false);
     }
   };
 
+  const loginSchema: ValidationSchema<any> = {
+    email: { required: true, email: true },
+    password: { required: true, minLength: 6 },
+  };
+  const registerSchema: ValidationSchema<any> = {
+    email: { required: true, email: true },
+    phone: { required: true, minLength: 8 },
+    fullName: { required: true, minLength: 2 },
+    country: { required: true },
+    gender: { required: true },
+    password: { required: true, minLength: 6 },
+    agreed: { required: true },
+  };
+  const resetSchema: ValidationSchema<any> = {
+    email: { required: true, email: true },
+    password: { required: true, minLength: 6 },
+    confirm_password: { required: true, minLength: 6 },
+  };
+
+  const loginValidator = useFormValidator(loginSchema, form);
+  const registerValidator = useFormValidator(registerSchema, form);
+  const resetValidator = useFormValidator(resetSchema, form);
+
   const handleLogin = () => handleAsync(async () => {
+    if (!loginValidator.validate()) return;
     await login(form.email, form.password);
   });
 
@@ -54,6 +84,7 @@ const Registration: React.FC<Props> = () => {
   });
 
   const handleRegister = () => handleAsync(async () => {
+    if (!registerValidator.validate()) return;
     const registrationData = {
       type: isCorper ? 2 : 1,
       email: form.email,
@@ -84,6 +115,7 @@ const Registration: React.FC<Props> = () => {
   });
 
   const handleResetPassword = () => handleAsync(async () => {
+    if (!resetValidator.validate()) return;
     if (form.password !== form.confirm_password) {
       throw new Error('Passwords do not match');
     }
@@ -99,6 +131,7 @@ const Registration: React.FC<Props> = () => {
         <>
           <h2 className="text-lg font-bold mb-2">Login</h2>
           <label className="text-xs mb-1 block">Email</label>
+          {loginValidator.errors.email && <span className="text-xs text-red-500">{loginValidator.errors.email}</span>}
           <input
             type="email"
             placeholder="Email"
@@ -106,6 +139,7 @@ const Registration: React.FC<Props> = () => {
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
           <label className="text-xs mb-1 block">Password</label>
+          {loginValidator.errors.password && <span className="text-xs text-red-500">{loginValidator.errors.password}</span>}
           <div className="relative mb-2">
             <input
               type={showPwd ? 'text' : 'password'}
@@ -117,7 +151,7 @@ const Registration: React.FC<Props> = () => {
               className="absolute right-2 top-2"
               onClick={() => setShowPwd(!showPwd)}
             >
-              {/* {showPwd ? <EyeOffSVG /> : <EyeSVG />} */}
+              {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
           <div className="flex w-full gap-2 flex-col justify-end items-end mb-4">
@@ -154,6 +188,7 @@ const Registration: React.FC<Props> = () => {
             Enter your email to receive a reset token
           </p>
           <label className="text-xs mb-1 block">Email</label>
+          {resetValidator.errors.email && <span className="text-xs text-red-500">{resetValidator.errors.email}</span>}
           <input
             type="email"
             placeholder="Email"
@@ -197,6 +232,7 @@ const Registration: React.FC<Props> = () => {
         <>
           <h2 className="text-lg font-bold mb-2">Set New Password</h2>
           <label className="text-xs mb-1 block">New Password</label>
+          {resetValidator.errors.password && <span className="text-xs text-red-500">{resetValidator.errors.password}</span>}
           <div className="relative mb-2">
             <input
               type={showPwd ? 'text' : 'password'}
@@ -208,10 +244,11 @@ const Registration: React.FC<Props> = () => {
               className="absolute right-2 top-2"
               onClick={() => setShowPwd(!showPwd)}
             >
-              {/* {showPwd ? <EyeOffSVG /> : <EyeSVG />} */}
+              {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
           <label className="text-xs mb-1 block">Confirm New Password</label>
+          {resetValidator.errors.confirm_password && <span className="text-xs text-red-500">{resetValidator.errors.confirm_password}</span>}
           <div className="relative mb-4">
             <input
               type={showPwd ? 'text' : 'password'}
@@ -223,7 +260,7 @@ const Registration: React.FC<Props> = () => {
               className="absolute right-2 top-2"
               onClick={() => setShowPwd(!showPwd)}
             >
-              {/* {showPwd ? <EyeOffSVG /> : <EyeSVG />} */}
+              {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
           <button
@@ -257,6 +294,7 @@ const Registration: React.FC<Props> = () => {
         <>
           <h2 className="text-lg font-bold mb-2">Request Verification Token</h2>
           <label className="text-xs mb-1 block">Email</label>
+          {registerValidator.errors.email && <span className="text-xs text-red-500">{registerValidator.errors.email}</span>}
           <input
             type="email"
             placeholder="Email"
@@ -264,6 +302,7 @@ const Registration: React.FC<Props> = () => {
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
           <label className="text-xs mb-1 block">Phone Number</label>
+          {registerValidator.errors.phone && <span className="text-xs text-red-500">{registerValidator.errors.phone}</span>}
           <input
             type="text"
             placeholder="Phone Number"
@@ -395,7 +434,7 @@ const Registration: React.FC<Props> = () => {
               className="absolute right-2 top-2"
               onClick={() => setShowPwd(!showPwd)}
             >
-              {/* {showPwd ? <EyeOffSVG /> : <EyeSVG />} */}
+              {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
           <label className="text-xs mb-1 block">Referral Code (Optional)</label>
@@ -510,6 +549,8 @@ const Registration: React.FC<Props> = () => {
       <Modal isOpen={!!flow} onClose={closeModal}>
         {renderModalContent()}
       </Modal>
+
+      <AlertMessage open={alertOpen} onClose={() => setAlertOpen(false)} message={alertMsg} severity="purple" />
     </div>
   );
 };

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import ContentCard from "../HomePage/HomePageComponents/ContentCard";
 import RightSideBar from "../../components/RightSideBar/RightSideBar";
 import { useAuth } from "../../context/AuthContext/AuthContext";
+import AlertMessage from '../../components/AlertMessage';
 
 // Interface for saved posts response (same as ContentCard)
 interface SavedPost {
@@ -36,19 +37,15 @@ interface SavedPost {
 
 // Utility to format time (e.g., "2 hours ago")
 const formatTime = (updatedAt: string): string => {
-  console.log('Parsing updated_at:', updatedAt);
-
   // Check if updatedAt is a relative time string (e.g., "1 month ago")
   const relativeTimeRegex = /^\d+\s+(minute|hour|day|week|month|year)s?\s+ago$/;
   if (relativeTimeRegex.test(updatedAt)) {
-    console.log('Detected relative time:', updatedAt);
     return updatedAt; // Pass through relative time strings
   }
 
   // Try parsing as ISO date
   const updated = new Date(updatedAt);
   if (isNaN(updated.getTime())) {
-    console.error('Invalid date for updated_at:', updatedAt);
     return "Just now";
   }
 
@@ -57,15 +54,12 @@ const formatTime = (updatedAt: string): string => {
 
   // Handle future dates
   if (diffMs < 0) {
-    console.warn('Future date detected for updated_at:', updatedAt);
     return "Just now";
   }
 
   const diffMinutes = Math.floor(diffMs / 1000 / 60);
   const diffHours = Math.floor(diffMinutes / 60);
   const diffDays = Math.floor(diffHours / 24);
-
-  console.log('Time diff:', { diffMinutes, diffHours, diffDays });
 
   if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes !== 1 ? "s" : ""} ago`;
   if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? "s" : ""} ago`;
@@ -77,10 +71,12 @@ const SavedPosts = () => {
   const [savedPosts, setSavedPosts] = useState<SavedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMsg, setAlertMsg] = useState('');
+  const [alertSeverity, setAlertSeverity] = useState<'success' | 'error'>('success');
 
   useEffect(() => {
     const fetchSavedPosts = async () => {
-      console.log('Fetching saved posts, auth:', { isAuthenticated, userId: user?.id });
       if (!isAuthenticated || !user?.id) {
         setError("Please log in to view saved posts");
         setLoading(false);
@@ -94,7 +90,6 @@ const SavedPosts = () => {
         if (!Array.isArray(posts)) {
           throw new Error("Invalid response format");
         }
-        console.log('Fetched saved posts:', JSON.stringify(posts, null, 2));
         setSavedPosts(posts);
         setError(null);
       } catch (err: any) {
@@ -142,6 +137,12 @@ const SavedPosts = () => {
             />
           ))
         )}
+        <AlertMessage
+          open={alertOpen}
+          message={alertMsg}
+          severity="purple"
+          onClose={() => setAlertOpen(false)}
+        />
       </div>
       <div className="flex-[3] max-sm:hidden overflow-y-auto h-full">
         <RightSideBar />

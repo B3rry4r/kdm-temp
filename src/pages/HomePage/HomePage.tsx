@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import ContentCard from './HomePageComponents/ContentCard';
 import Banner from './HomePageComponents/banner';
 import RightSideBar from '../../components/RightSideBar/RightSideBar';
 import { useAuth } from '../../context/AuthContext/AuthContext';
 import { usePostUpdate } from '../../context/PostUpdateContext/PostUpdateContext';
+import { useSearch } from '../../components/header/Header';
 
 // Interface for ad response
 interface Ad {
@@ -64,6 +65,7 @@ const HomePage = () => {
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { searchQuery } = useSearch();
 
   const { shouldRefresh } = usePostUpdate();
 
@@ -174,38 +176,80 @@ const HomePage = () => {
     return selectedAd;
   };
 
+  // Filter posts based on search
+  const filteredPosts = useMemo(() => {
+    if (!searchQuery.trim() || !content || content.length === 0) {
+      return content;
+    }
+    
+    return content.filter(post => {
+      const content = post.data.description?.toLowerCase() || '';
+      const authorName = post.data.author?.toLowerCase() || '';
+      const topicName = post.data.institution?.toLowerCase() || '';
+      
+      const query = searchQuery.toLowerCase();
+      
+      return content.includes(query) || 
+             authorName.includes(query) || 
+             topicName.includes(query);
+    });
+  }, [content, searchQuery]);
+
+  // Fix the duplicate post rendering issue
   return (
-    <div className="flex h-full">
-      <div
-        ref={containerRef}
-        className="p-10 max-sm:w-full max-sm:p-4 max-sm:items-center flex-[4] flex flex-col gap-10 overflow-y-auto h-full"
-      >
-        {error && (
-          <div className="text-red-500 text-center">{error}</div>
-        )}
-        {content.map((item, index) => (
-          <React.Fragment key={index}>
-            <ContentCard {...item.data} />
-            {(index + 1) % 3 === 0 && ads.length > 0 && (
-              // Randomly select one ad to display every 3 posts
-              (() => {
-                const selectedAd = getRandomAd(ads);
-                return selectedAd ? <Banner ad={selectedAd} /> : null;
-              })()
-            )}
-          </React.Fragment>
-        ))}
-        {isLoading && (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="loader"></div>
-          </div>
-        )}
-        {!hasMore && content.length > 0 && (
-          <div className="text-center text-xs font-bold">No more posts to load.</div>
-        )}
-      </div>
-      <div className="flex-[3] max-sm:hidden overflow-y-auto h-full">
-        <RightSideBar />
+    <div className="h-full">
+      <div className="flex h-full w-full">
+        <div 
+          ref={containerRef}
+          className="flex flex-col gap-5 overflow-y-auto p-10 max-xl:p-8 max-lg:p-6 max-md:p-4 flex-4 max-sm:w-full"
+        >
+          {error && (
+            <div className="text-red-500 text-center">{error}</div>
+          )}
+          
+          {searchQuery && (
+            <div className="my-3">
+              <p className="text-sm">
+                Showing results for: <span className="font-semibold">{searchQuery}</span>
+              </p>
+            </div>
+          )}
+          
+          {!isLoading ? (
+            filteredPosts && filteredPosts.length > 0 ? (
+              filteredPosts.map((item, index) => (
+                <React.Fragment key={index}>
+                  <ContentCard {...item.data} />
+                  {(index + 1) % 5 === 0 && index < filteredPosts.length - 1 && (
+                    // Randomly select one ad to display every 5 posts
+                    (() => {
+                      const selectedAd = getRandomAd(ads);
+                      return selectedAd ? <Banner ad={selectedAd} /> : null;
+                    })()
+                  )}
+                </React.Fragment>
+              ))
+            ) : (
+              <div className="w-full text-center py-8">
+                <p className="text-gray-500">
+                  {searchQuery ? "No posts found matching your search." : "No posts available."}
+                </p>
+              </div>
+            )
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="loader"></div>
+            </div>
+          )}
+          
+          {!hasMore && filteredPosts.length > 0 && (
+            <div className="text-center text-xs font-bold">No more posts to load.</div>
+          )}
+        </div>
+        
+        <div className="flex-[3] max-md:flex-[2] max-sm:hidden max-lg:hidden overflow-y-auto h-full">
+          <RightSideBar />
+        </div>
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import imageCompression from 'browser-image-compression';
+import AlertMessage from '../../../components/AlertMessage';
 
 
 // Define user type
@@ -41,6 +42,9 @@ const AccountComponent = () => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMsg, setAlertMsg] = useState('');
+  const [alertSeverity, setAlertSeverity] = useState<'success' | 'error'>('success');
 
 // Add cleanup in handleImageChange and useEffect
 const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,7 +151,6 @@ const handleSave = async () => {
 
     // Extract updated user data from response
     const responseData = response.data.data; // Access the 'data' object from response
-    console.log('API Response:', response.data);
 
     // Create updated user object by merging existing user with new data
     const updatedUser: User = {
@@ -157,8 +160,6 @@ const handleSave = async () => {
       bio: responseData.bio || user.bio,
       profile_picture: responseData.profile_picture || user.profile_picture,
     };
-
-    console.log('Updated User:', updatedUser);
 
     // Update form state to reflect the new values
     setForm((prev) => ({
@@ -179,9 +180,15 @@ const handleSave = async () => {
 
     // Update user state
     setUser(updatedUser);
+
+    setAlertMsg('Profile updated successfully');
+    setAlertSeverity('success');
+    setAlertOpen(true);
   } catch (err: any) {
     setError(err.response?.data?.message || 'Failed to update profile');
-    console.error('Update profile error:', err.response?.data || err.message);
+    setAlertMsg(err.response?.data?.message || 'Failed to update profile');
+    setAlertSeverity('error');
+    setAlertOpen(true);
   } finally {
     setLoading(false);
   }
@@ -201,7 +208,9 @@ const handleSave = async () => {
       navigate('/login');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to deactivate account');
-      console.error('Deactivate account error:', err.response?.data || err.message);
+      setAlertMsg(err.response?.data?.message || 'Failed to deactivate account');
+      setAlertSeverity('error');
+      setAlertOpen(true);
     } finally {
       setLoading(false);
     }
@@ -338,7 +347,7 @@ const handleSave = async () => {
       >
         Deactivate Account
       </p>
-      {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
+      <AlertMessage open={alertOpen} message={alertMsg} severity="purple" onClose={() => setAlertOpen(false)} />
     </div>
   );
 };

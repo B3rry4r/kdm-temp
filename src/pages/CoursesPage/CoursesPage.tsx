@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { ChevronDownSVG } from '../../assets/icons/icons';
 import CourseCard from './CourseComponents/CourseCard';
 import { useAuth } from '../../context/AuthContext/AuthContext';
+import AlertMessage from '../../components/AlertMessage';
+import { useSearch } from '../../components/header/Header';
 
 interface Course {
   id: number;
@@ -19,16 +21,23 @@ const CoursesPage = () => {
   const [filter, setFilter] = useState<string>('All');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMsg, setAlertMsg] = useState('');
+  const [alertSeverity, setAlertSeverity] = useState<'success' | 'error'>('success');
+  const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
+  const { searchQuery } = useSearch();
 
   useEffect(() => {
     const fetchCourses = async () => {
       try {
         const response = await apiClient.get<Course[]>('/courses');
-        console.log('Courses API response:', JSON.stringify(response.data, null, 2));
         setCourses(response.data);
       } catch (err: any) {
         console.error('Error fetching courses:', err.response?.data || err.message);
         setError('Failed to load courses');
+        setAlertMsg('Failed to load courses');
+        setAlertSeverity('error');
+        setAlertOpen(true);
       } finally {
         setIsLoading(false);
       }
@@ -37,26 +46,33 @@ const CoursesPage = () => {
     fetchCourses();
   }, [apiClient]);
 
-  const filteredCourses = courses.filter((course) => {
-    if (filter === 'All') return true;
-    if (filter === 'Free') return course.type === 'Free';
-    if (filter === 'Paid') return course.type === 'Paid';
-    if (filter === 'Institution') return course.org_id !== null || course.type === 'Org';
-    return true;
-  });
+  useEffect(() => {
+    if (courses.length > 0) {
+      const filtered = courses.filter((course) => {
+        const categoryMatches = 
+          filter === 'All' ? true :
+          filter === 'Free' ? course.type === filter :
+          filter === 'Paid' ? course.type === filter :
+          filter === 'Institution' ? (course.org_id !== null || course.type === 'Org') :
+          true;
+        
+        const searchMatches = !searchQuery.trim() ? true : (
+          (course.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+           course.description?.toLowerCase().includes(searchQuery.toLowerCase()))
+        );
+        
+        return categoryMatches && searchMatches;
+      });
+      
+      setFilteredCourses(filtered);
+      console.log('Filtered courses with search:', { filter, searchQuery, count: filtered.length });
+    }
+  }, [courses, filter, searchQuery]);
 
   if (isLoading) {
     return (
       <div className='w-full flex items-center justify-center h-full'>
         <div className='loader'></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className='w-full flex items-center justify-center h-full'>
-        <p className='text-[#68049B] text-xs'>{error}</p>
       </div>
     );
   }
@@ -101,20 +117,37 @@ const CoursesPage = () => {
           </div>
         </div>
       </div>
-      <div className='w-full h-auto grid gap-3 mt-5 max-sm:grid-cols-1 grid-cols-3'>
-        {filteredCourses.map((course) => (
-          <CourseCard
-            key={course.id}
-            id={course.id.toString()}
-            title={course.title}
-            desc={course.description.split('\n')[0]}
-            imgSrc={course.image}
-            tag={course.type}
-            price={course.price}
-            org_id={course.org_id}
-          />
-        ))}
-      </div>
+      
+      {searchQuery && (
+        <div className="my-4">
+          <p className="text-sm">
+            Showing results for: <span className="font-semibold">{searchQuery}</span>
+            {filter !== 'All' && <span> in <span className="font-semibold">{filter}</span></span>}
+          </p>
+        </div>
+      )}
+      
+      {filteredCourses.length > 0 ? (
+        <div className="w-full h-auto max-sm:grid-cols-1 max-lg:grid-cols-2 max-md:grid-cols-1 grid gap-3 mt-5 grid-cols-3">
+          {filteredCourses.map((course) => (
+            <CourseCard
+              key={course.id}
+              id={course.id.toString()}
+              title={course.title}
+              desc={course.description.split('\n')[0]}
+              imgSrc={course.image}
+              tag={course.type}
+              price={course.price}
+              org_id={course.org_id}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="w-full text-center py-8">
+          <p className="text-gray-500">No courses found matching your search.</p>
+        </div>
+      )}
+      <AlertMessage open={alertOpen} message={alertMsg} severity="purple" onClose={() => setAlertOpen(false)} />
     </div>
   );
 };

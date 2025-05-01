@@ -11,6 +11,8 @@ import RightSideBar from '../../components/RightSideBar/RightSideBar';
 import UserCard from '../HomePage/HomePageComponents/UserCard';
 import { useAuth } from '../../context/AuthContext/AuthContext';
 import { usePostUpdate } from '../../context/PostUpdateContext/PostUpdateContext';
+import AlertMessage from '../../components/AlertMessage';
+// import CloseIcon from '@mui/icons-material/Close'; 
 
 // Interface for profile data
 interface ProfileData {
@@ -93,17 +95,18 @@ const ProfilePage = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMsg, setAlertMsg] = useState('');
 
   // Fetch profile data
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const response = await apiClient.get(`/profile/${id}`);
-        console.log('Profile response:', response.data);
         setProfile(response.data.data);
       } catch (error: any) {
-        console.error('Profile fetch error:', error.response?.data || error.message);
-        alert('Failed to load profile');
+        setAlertMsg('Could not load your profile. Please try again.');
+        setAlertOpen(true);
       }
     };
     if (id) {
@@ -120,13 +123,12 @@ const ProfilePage = () => {
         const response = await apiClient.get<PaginatedPostsResponse>('/posts', {
           params: { page, perPage: 10 },
         });
-        console.log('Posts response:', response.data);
         const userPosts = response.data.data.filter((post: Post) => post.user_id.toString() === id.toString());
         setPosts((prevPosts) => [...prevPosts, ...userPosts]);
         setHasMore(response.data.current_page < response.data.last_page);
       } catch (error: any) {
-        console.error('Posts fetch error:', error.response?.data || error.message);
-        alert('Failed to load posts');
+        setAlertMsg('Failed to load posts');
+        setAlertOpen(true);
       }
     };
 
@@ -164,13 +166,12 @@ const ProfilePage = () => {
         const response = await apiClient.get<PaginatedPostsResponse>('/posts', {
           params: { page, perPage: 10 },
         });
-        console.log('Posts response:', response.data);
         const userPosts = response.data.data.filter((post: Post) => post.user_id.toString() === id.toString());
         setPosts((prevPosts) => [...prevPosts, ...userPosts]);
         setHasMore(response.data.current_page < response.data.last_page);
       } catch (error: any) {
-        console.error('Posts fetch error:', error.response?.data || error.message);
-        alert('Failed to load posts');
+        setAlertMsg('Failed to load posts');
+        setAlertOpen(true);
       } finally {
         setLoading(false);
       }
@@ -187,17 +188,15 @@ const ProfilePage = () => {
       const fetchFollowers = async () => {
         try {
           const response = await apiClient.get(`/profile/followers/${id}`);
-          console.log('Followers response:', response.data);
           const followersData = response.data.map((f: any) => ({
             id: f.id.toString(),
-            // name: `${f.user.firstname} ${f.user.lastname}`,
             bio: f.user.bio || null,
             iam_following: f.iam_following,
           }));
           setFollowers(followersData);
         } catch (error: any) {
-          console.error('Followers fetch error:', error.response?.data || error.message);
-          alert('Failed to load followers');
+          setAlertMsg('Failed to load followers');
+          setAlertOpen(true);
         }
       };
       fetchFollowers();
@@ -210,7 +209,6 @@ const ProfilePage = () => {
       const fetchFollowing = async () => {
         try {
           const response = await apiClient.get(`/profile/following/${id}`);
-          console.log('Following response:', response.data);
           const followingData = response.data.map((f: any) => ({
             id: f.user.id.toString(),
             name: `${f.user.firstname} ${f.user.lastname}`,
@@ -220,8 +218,8 @@ const ProfilePage = () => {
           }));
           setFollowing(followingData);
         } catch (error: any) {
-          console.error('Following fetch error:', error.response?.data || error.message);
-          alert('Failed to load following');
+          setAlertMsg('Failed to load following');
+          setAlertOpen(true);
         }
       };
       fetchFollowing();
@@ -242,7 +240,7 @@ const ProfilePage = () => {
     <div className="w-full flex h-full">
       <div
         ref={containerRef}
-        className="w-full h-full flex-[4] overflow-x-hidden overflow-y-scroll flex flex-col gap-2"
+        className="w-full h-full flex-[4] max-xl:p-8 max-lg:p-6 max-md:p-4 overflow-x-hidden overflow-y-scroll flex flex-col gap-2"
       >
         <div
           onClick={handleEnrollClick}
@@ -370,9 +368,10 @@ const ProfilePage = () => {
           )}
         </div>
       </div>
-      <div className="overflow-y-scroll max-sm:hidden flex-[3]">
+      <div className="overflow-y-scroll  max-md:flex-[2] max-sm:hidden max-lg:hidden flex-[3]">
         <RightSideBar />
       </div>
+      <AlertMessage open={alertOpen} message={alertMsg} onClose={() => setAlertOpen(false)} severity="purple" />
     </div>
   );
 };

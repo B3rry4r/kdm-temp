@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import ContentCard from "../HomePage/HomePageComponents/ContentCard";
 import RightSideBar from "../../components/RightSideBar/RightSideBar";
@@ -6,6 +6,8 @@ import { FollowPlus, ShareSVG } from "../../assets/icons/icons";
 import { useAuth } from "../../context/AuthContext/AuthContext";
 import { useData } from "../../context/DataContext/DataContext";
 import { CheckCircle2Icon } from "lucide-react";
+import AlertMessage from '../../components/AlertMessage';
+import { useSearch } from '../../components/header/Header';
 
 // Interface for topic post
 interface TopicPost {
@@ -53,6 +55,7 @@ const TopicsPage = () => {
   const { topicId } = useParams<{ topicId: string }>();
   const { apiClient, isAuthenticated } = useAuth();
   const { topics } = useData();
+  const { searchQuery } = useSearch();
   const [content, setContent] = useState<Array<{ type: string; data: any }>>([]);
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -62,12 +65,34 @@ const TopicsPage = () => {
   const [followerCount, setFollowerCount] = useState<number>(0);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMsg, setAlertMsg] = useState('');
+  const [alertSeverity, setAlertSeverity] = useState<'purple' | 'success' | 'error'>('purple');
 
   // Find topic details
   const topic = topicId ? topics.find((t) => t.id === parseInt(topicId)) : null;
   const topicName = topic?.name || "Unknown Topic";
   const topicLogo = topic?.logo || null;
   const topicBanner = topic?.banner || null;
+
+  // Filter content based on search query
+  const filteredContent = useMemo(() => {
+    if (!searchQuery.trim() || !content.length) {
+      return content;
+    }
+    
+    const query = searchQuery.toLowerCase();
+    return content.filter(item => {
+      if (item.type === 'content') {
+        return (
+          item.data.description.toLowerCase().includes(query) ||
+          item.data.author.toLowerCase().includes(query) ||
+          item.data.institution.toLowerCase().includes(query)
+        );
+      }
+      return false;
+    });
+  }, [content, searchQuery]);
 
   // Initialize follower count and isFollowing
   useEffect(() => {
@@ -192,10 +217,14 @@ const TopicsPage = () => {
     try {
       await navigator.clipboard.writeText(postUrl);
       console.log("Copied post URL:", postUrl);
-      alert("Topic link copied to clipboard!");
+      setAlertMsg('Topic link copied to clipboard!');
+      setAlertSeverity('success');
+      setAlertOpen(true);
     } catch (err) {
       console.error("Failed to copy post link:", err);
-      alert("Failed to copy topic link");
+      setAlertMsg('Failed to copy topic link');
+      setAlertSeverity('error');
+      setAlertOpen(true);
     }
   };
 
@@ -219,7 +248,7 @@ const TopicsPage = () => {
     <div className="flex h-full">
       <div
         ref={containerRef}
-        className="p-5 flex-[3] flex flex-col gap-10 overflow-y-auto h-full"
+        className="p-5 flex-[4] flex flex-col gap-10 overflow-y-auto h-full"
       >
         <div className="w-full min-h-[100px] bg-gray-200 rounded-xl">
           {topicBanner ? <img src={topicBanner} alt="topic_banner" className="w-full h-full object-cover rounded-xl" /> : null}
@@ -260,13 +289,25 @@ const TopicsPage = () => {
             </div>
           </div>
         </div>
-        {content.length > 0 ? (
-          content.map((item, index) => (
+        
+        {/* Search Results Info */}
+        {searchQuery && (
+          <div className="my-4">
+            <p className="text-sm">
+              Showing results for: <span className="font-semibold">{searchQuery}</span> in {topicName}
+            </p>
+          </div>
+        )}
+        
+        {filteredContent.length > 0 ? (
+          filteredContent.map((item, index) => (
             <ContentCard key={index} {...item.data} />
           ))
         ) : (
           <p className="text-sm text-gray-500">
-            No posts found for this topic.
+            {searchQuery 
+              ? `No posts found matching "${searchQuery}" in this topic.` 
+              : "No posts found for this topic."}
           </p>
         )}
         {isLoading && (
@@ -274,13 +315,14 @@ const TopicsPage = () => {
             <div className="loader"></div>
           </div>
         )}
-        {!hasMore && content.length > 0 && (
+        {!hasMore && content.length > 0 && !searchQuery && (
           <div className="text-center text-xs font-bold">No more posts to load.</div>
         )}
       </div>
-      <div className="flex-[3] max-sm:hidden overflow-y-auto h-full">
+      <div className="flex-[3] max-lg:hidden max-md:flex-[2] max-sm:hidden overflow-y-auto h-full">
         <RightSideBar />
       </div>
+      <AlertMessage open={alertOpen} message={alertMsg} severity="purple" onClose={() => setAlertOpen(false)} />
     </div>
   );
 };

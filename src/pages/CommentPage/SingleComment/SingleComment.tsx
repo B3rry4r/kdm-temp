@@ -2,6 +2,9 @@ import { useState } from "react";
 import UserCard from "../../HomePage/HomePageComponents/UserCard";
 import { CloseSVG, CommentSVG, LikeSVG } from "../../../assets/icons/icons";
 import { useAuth } from "../../../context/AuthContext/AuthContext";
+import AlertMessage from '../../../components/AlertMessage';
+import { Smile } from 'lucide-react';
+import EmojiPicker from 'emoji-picker-react';
 
 type Props = {
   comment: {
@@ -32,6 +35,9 @@ const SingleComment = ({ comment, isNoInteractions }: Props) => {
   const [replies, setReplies] = useState<any[]>([]);
   const [likesCount, setLikesCount] = useState(comment.likes_count);
   const [liked, setLiked] = useState(comment.liked);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMsg, setAlertMsg] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Fetch replies when comment count is clicked
   const showAllComments = async () => {
@@ -104,6 +110,12 @@ const SingleComment = ({ comment, isNoInteractions }: Props) => {
     const diffMs = now.getTime() - date.getTime();
     const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
     return `${diffHrs}hrs ago`;
+  };
+
+  // Add emoji handler
+  const onEmojiClick = (emojiObject: any) => {
+    setNewReply(prevReply => prevReply + emojiObject.emoji);
+    setShowEmojiPicker(false);
   };
 
   return (
@@ -183,36 +195,46 @@ const SingleComment = ({ comment, isNoInteractions }: Props) => {
             <div className="mt-3 bg-[rgba(255,255,255,0.3)] rounded-lg backdrop-blur-xs">
               <div className="bg-white p-2 flex flex-col rounded-xl">
                 <div className="flex justify-between items-center">
-                  <div className="flex items-center">
+                  <div className="flex items-center w-full">
                     <div className="min-w-8 min-h-8 rounded-full w-8 h-8 overflow-hidden bg-gray-300">
-                    {user && user.profile_picture ? (
-                    <img
-                      src={user.profile_picture}
-                      alt="user image"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none"; // Hide image on error
-                        e.currentTarget.parentElement!.style.backgroundColor = "rgb(209 213 219)"; // Restore gray background
-                      }}
-                    />
-                  ) : null}
+                      {user && user.profile_picture ? (
+                        <img
+                          src={user.profile_picture}
+                          alt="user image"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none"; // Hide image on error
+                            e.currentTarget.parentElement!.style.backgroundColor = "rgb(209 213 219)"; // Restore gray background
+                          }}
+                        />
+                      ) : null}
                     </div>
                     <textarea
-                      className="w-full h-[50px] mt-2 p-2 resize-none text-[12px] outline-none"
+                      className="w-full h-[50px] ml-2 p-2 resize-none text-sm outline-none"
                       placeholder="Type your reply..."
                       value={newReply}
                       onChange={(e) => setNewReply(e.target.value)}
                     ></textarea>
                   </div>
-                  <div className="flex gap-1">
-                    {/* <div className="w-4 h-4 bg-gray-400 rounded-full"></div>
-                    <div className="w-4 h-4 bg-gray-400 rounded-full"></div> */}
+                  <div className="flex gap-2 ml-2">
+                    <div className="relative">
+                      <Smile 
+                        size={20} 
+                        className="cursor-pointer text-gray-500" 
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      />
+                      {showEmojiPicker && (
+                        <div className="absolute bottom-10 right-0 z-50">
+                          <EmojiPicker onEmojiClick={onEmojiClick} />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="w-full mt-5 flex justify-end">
                   <button
                     onClick={handlePostReply}
-                    className="px-5 py-1 bg-[#FFD30F] font-bold text-xs rounded-sm"
+                    className="px-5 py-1 bg-[#FFD30F] font-bold text-sm rounded-sm"
                   >
                     Post
                   </button>
@@ -235,6 +257,12 @@ const SingleComment = ({ comment, isNoInteractions }: Props) => {
           )}
         </div>
       </div>
+      <AlertMessage
+        open={alertOpen}
+        message={alertMsg}
+        severity="purple"
+        onClose={() => setAlertOpen(false)}
+      />
     </div>
   );
 };

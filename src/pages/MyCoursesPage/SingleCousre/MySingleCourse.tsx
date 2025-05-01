@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ForwardArrowSVG } from '../../../assets/icons/icons';
 import DropDownComponents from './DropDownComponents/DropDownComponents';
 import { useAuth } from '../../../context/AuthContext/AuthContext';
+import AlertMessage from '../../../components/AlertMessage';
+import { useCourseProgress } from '../../../context/CourseProgressContext/CourseProgressContext';
 
 // Define types based on API response
 interface Lesson {
@@ -72,26 +74,52 @@ const MySingleCourse = () => {
   const [course, setCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMsg, setAlertMsg] = useState('');
+  const [alertSeverity, setAlertSeverity] = useState<'success' | 'error'>('success');
+  
+  // Use the course progress context
+  const { 
+    getLessonStatus, 
+    getSectionStatus, 
+    getSectionProgress, 
+    getCourseProgress 
+  } = useCourseProgress();
+  
+  // Parsed course ID for context functions
+  const courseId = id ? parseInt(id) : 0;
 
   useEffect(() => {
     const fetchCourse = async () => {
+      if (!id) {
+        setError('Invalid course ID');
+        setIsLoading(false);
+        return;
+      }
+      
       try {
         const response = await apiClient.get<Course>(`/course/${id}`);
-        console.log('Course API response:', JSON.stringify(response.data, null, 2));
+        
+        // Get course progress from context
+        const progressPercent = getCourseProgress(parseInt(id));
+        
         setCourse({
           ...response.data,
-          completion_percent: 0, // Placeholder; update if progress data is available
+          completion_percent: progressPercent, // Use tracked progress
         });
       } catch (err: any) {
         console.error('Error fetching course:', err.response?.data || err.message);
         setError('Failed to load course');
+        setAlertMsg('Failed to load course');
+        setAlertSeverity('error');
+        setAlertOpen(true);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchCourse();
-  }, [apiClient, id]);
+  }, [apiClient, id, getCourseProgress]);
 
   const handleEnrollClick = () => {
     navigate('/my-courses');
@@ -120,19 +148,25 @@ const MySingleCourse = () => {
     return hours > 0 ? `${hours}hr ${minutes}mins` : `${minutes}mins`;
   };
 
-  // Map sections to CourseSectionOverview
-  const courseSections: CourseSectionOverview[] = course?.sections?.map(section => ({
-    id: `section-${section.id}`,
-    title: section.title,
-    numberOfLessons: section.lessons.length.toString(),
-    totalTime: calculateTotalTime(section.lessons),
-    dropDownItems: section.lessons.map(lesson => ({
-      title: lesson.title,
-      time: estimateLessonTime(lesson),
-      type: lesson.type === 1 ? 'document' : 'video',
-      isCompleted: false, // Placeholder; update if completion data is available
-    })),
-  })) || [];
+  // Map sections to CourseSectionOverview with completion status from context
+  const courseSections: CourseSectionOverview[] = course?.sections?.map(section => {
+    // Get section progress percentage from context
+    const sectionProgress = getSectionProgress(courseId, section.id);
+    
+    return {
+      id: `section-${section.id}`,
+      title: section.title,
+      numberOfLessons: section.lessons.length.toString(),
+      totalTime: calculateTotalTime(section.lessons),
+      // Update with completion status from context
+      dropDownItems: section.lessons.map(lesson => ({
+        title: lesson.title,
+        time: estimateLessonTime(lesson),
+        type: lesson.type === 1 ? 'document' : 'video',
+        isCompleted: getLessonStatus(courseId, section.id, lesson.id), // Use tracked status
+      })),
+    };
+  }) || [];
 
   if (isLoading) {
     return (
@@ -151,7 +185,7 @@ const MySingleCourse = () => {
   }
 
   return (
-    <div className='flex overflow-y-auto flex-col max-sm:p-4 p-10 h-full w-full'>
+    <div className='flex overflow-y-auto flex-col max-lg:p-6 max-sm:p-4 p-10 h-full w-full'>
       <div
         onClick={handleEnrollClick}
         className='cursor-pointer w-10 min-h-10 rotate-180 bg-gray-300 rounded-full flex items-center justify-center'
@@ -159,11 +193,11 @@ const MySingleCourse = () => {
         <ForwardArrowSVG size={13} />
       </div>
       <div className='w-full mt-7 items-center flex flex-col'>
-        <div className='w-[80%] max-sm:w-full flex flex-col gap-2 max-sm:p-4 p-10'>
+        <div className='w-[80%] max-lg:w-full max-lg:p-0 max-sm:w-full flex flex-col gap-2 max-sm:p-4 p-10'>
           <h1 className='text-2xl mb-4 max-sm:mb-0 font-bold'>Welcome {authUser?.firstname || 'User'}</h1>
           <h1 className='text-xl my-5 font-bold'>Continue Course</h1>
           <div className='w-full min-h-60 max-sm:min-h-100 mb-5 p-5 max-sm:flex-col flex rounded-lg bg-white'>
-            <div className='w-[40%] h-[100%] max-sm:w-full max-sm:h-[50%] p-10 flex rounded-lg bg-gray-200'>
+            <div className='w-[40%] h-[100%] max-sm:w-full max-sm:h-[50%] overflow-hidden flex rounded-lg bg-gray-200'>
               <img src={course.image} alt={course.title} className='w-full h-full object-cover rounded-lg' />
             </div>
             <div className='w-[60%] h-full max-sm:w-full max-sm:h-[50%] p-5 flex flex-col gap-4'>
@@ -213,6 +247,7 @@ const MySingleCourse = () => {
           </div>
         </div>
       </div>
+      <AlertMessage open={alertOpen} message={alertMsg} severity="purple" onClose={() => setAlertOpen(false)} />
     </div>
   );
 };

@@ -6,9 +6,11 @@ import { useAuth } from '../../../context/AuthContext/AuthContext';
 import { Play, Pause } from 'lucide-react';
 import DropDownComponents from '../SingleCousre/DropDownComponents/DropDownComponents';
 import QuizDropDownComponents from '../SingleCousre/DropDownComponents/QuizDropDownComponent';
+import { useCourseProgress } from '../../../context/CourseProgressContext/CourseProgressContext';
+import AlertMessage from '../../../components/AlertMessage';
 
-const contentOuterClasses = 'w-full max-sm:pr-0 h-full pr-60 flex flex-col';
-const contentHeaderClasses = 'w-full max-sm:px-4 max-sm:py-0 max-sm:pb-10 px-20 border-b border-gray-300 py-20';
+const contentOuterClasses = 'w-full max-lg:pr-0 h-full pr-60 flex flex-col';
+const contentHeaderClasses = 'w-full max-lg:px-4 max-lg:py-0 max-lg:pb-10 px-20 border-b border-gray-300 py-20';
 const contentButtonContainerClasses = 'flex items-center justify-center p-4';
 
 interface CourseProps {
@@ -52,7 +54,7 @@ const CourseComponent: React.FC<CourseProps> = ({ title, description, videoUrl, 
             </div>
           </div>
         </div>
-        <div className='w-full h-80 max-sm:h-60 relative'>
+        <div className='w-full h-80 max-lg:h-60 relative'>
           <video
             ref={videoRef}
             src={videoUrl}
@@ -178,6 +180,8 @@ const QuizComponent: React.FC<QuizProps> = ({ quizTitle, isLocked, passmark, dur
     }
   }, [courseId, isLocked, apiClient]);
 
+  const durationInMinutes = Math.floor(duration / 60000);
+
   if (isLocked) {
     return (
       <div className={contentOuterClasses}>
@@ -193,7 +197,7 @@ const QuizComponent: React.FC<QuizProps> = ({ quizTitle, isLocked, passmark, dur
               </div>
             </div>
           </div>
-          <div className='w-full h-auto py-5 rounded-lg flex flex-col items-center justify-center text-grayboreder-gray-700 gap-3'>
+          <div className='w-full h-auto py-5 rounded-lg flex flex-col items-center justify-center text-gray-700 gap-3'>
             <div className='w-50 h-50 rounded-full bg-gray-300' />
             <p className='font-bold text-lg'>Locked</p>
             <p className='font-medium text-xs'>Complete all lessons to unlock</p>
@@ -224,20 +228,20 @@ const QuizComponent: React.FC<QuizProps> = ({ quizTitle, isLocked, passmark, dur
               Start Quiz
             </button>
           </div>
-          <div className='w-full p-18 max-sm:p-8 bg-white max-sm:bg-gray-200 flex-col flex rounded-2xl'>
+          <div className='w-full p-18 max-lg:p-8 bg-white max-lg:bg-gray-200 flex-col flex rounded-2xl'>
             <div className='flex items-center justify-between'>
-              <p className='text-3xl max-sm:text-xl font-bold'>{passmark}% or Higher</p>
+              <p className='text-3xl max-lg:text-xl font-bold'>{passmark}% or Higher</p>
               <p className='text-xs font-bold'>
-                {loadingScore ? '-' : quizScore ? `${quizScore.score}%` : '-'}
+                {loadingScore || quizScore === null ? '-' : `${quizScore.score}%`}
               </p>
             </div>
-            <div className='w-[1px] h-full hidden max-sm:flex rounded-lg bg-gray-300'></div>
+            <div className='w-[1px] h-full hidden max-lg:flex rounded-lg bg-gray-300'></div>
             <div className='flex items-center justify-between'>
               <p className='text-xs font-bold text-gray-600'>Grade to Pass</p>
               <p className='text-xs font-bold text-gray-600'>Your Grade</p>
             </div>
             <div className='flex items-center justify-between mt-2'>
-              <p className='text-xs font-bold text-gray-600'>Duration: {duration} mins</p>
+              <p className='text-xs font-bold text-gray-600'>Duration: {durationInMinutes} mins</p>
               {quizScore && (
                 <p className='text-xs font-bold text-gray-600'>
                   Correct: {quizScore.correct} | Incorrect: {quizScore.incorrect}
@@ -329,19 +333,100 @@ const StartedCoursePage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { apiClient } = useAuth();
-  const [isActive, setIsActive] = useState(false);
   const [course, setCourse] = useState<Course | null>(null);
-  const [activeLesson, setActiveLesson] = useState<ActiveLessonState | null>(null);
-  const [completedLessons, setCompletedLessons] = useState<Map<string, boolean>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeLesson, setActiveLesson] = useState<ActiveLessonState | null>(null);
+  const [isQuizStarted, setIsQuizStarted] = useState(false);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMsg, setAlertMsg] = useState('');
+  const [alertSeverity, setAlertSeverity] = useState<'purple' | 'success' | 'error'>('purple');
+  const [isActive, setIsActive] = useState(false);
+  
+  // Use CourseProgressContext for tracking
+  const { 
+    markLessonComplete, 
+    markSectionComplete, 
+    getLessonStatus, 
+    getSectionStatus,
+    getCourseProgress
+  } = useCourseProgress();
+  
+  const courseId = id ? parseInt(id) : 0;
 
   useEffect(() => {
     const fetchCourse = async () => {
+      if (!id) {
+        setError('Invalid course ID');
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const response = await apiClient.get<Course>(`/course/${id}`);
-        console.log('Course API response:', JSON.stringify(response.data, null, 2));
-        setCourse(response.data);
+        
+        // Update course with progress data from context
+        const progressPercent = getCourseProgress(parseInt(id));
+        const courseData = {
+          ...response.data,
+          completion_percent: progressPercent,
+        };
+        
+        setCourse(courseData);
+        
+        // Set the first incomplete lesson as active by default
+        if (courseData.sections.length > 0) {
+          // Find first incomplete lesson
+          let foundActiveLesson = false;
+          
+          for (const section of courseData.sections) {
+            const sectionId = `section-${section.id}`;
+            const sectionComplete = getSectionStatus(courseId, section.id);
+            
+            if (sectionComplete) continue;
+            
+            // Check lessons in this section
+            for (let i = 0; i < section.lessons.length; i++) {
+              const lesson = section.lessons[i];
+              const lessonComplete = getLessonStatus(courseId, section.id, lesson.id);
+              
+              if (!lessonComplete) {
+                setActiveLesson({
+                  sectionId,
+                  lessonIndex: i,
+                  isQuiz: false
+                });
+                foundActiveLesson = true;
+                break;
+              }
+            }
+            
+            if (foundActiveLesson) break;
+            
+            // If we've completed all lessons in this section but not the quiz
+            if (section.lessons.length > 0 && courseData.quiz_settings) {
+              const quizComplete = getSectionStatus(courseId, section.id);
+              if (!quizComplete) {
+                setActiveLesson({
+                  sectionId,
+                  lessonIndex: 0,
+                  isQuiz: true
+                });
+                foundActiveLesson = true;
+                break;
+              }
+            }
+          }
+          
+          // If all lessons are complete, just set the first one
+          if (!foundActiveLesson && courseData.sections[0]?.lessons.length > 0) {
+            setActiveLesson({
+              sectionId: `section-${courseData.sections[0].id}`,
+              lessonIndex: 0,
+              isQuiz: false
+            });
+          }
+        }
       } catch (err: any) {
         console.error('Error fetching course:', err.response?.data || err.message);
         setError('Failed to load course');
@@ -351,7 +436,7 @@ const StartedCoursePage: React.FC = () => {
     };
 
     fetchCourse();
-  }, [apiClient, id]);
+  }, [id, apiClient, getCourseProgress, getLessonStatus, getSectionStatus]);
 
   // Helper to estimate lesson time
   const estimateLessonTime = (lesson: Lesson): string => {
@@ -373,55 +458,108 @@ const StartedCoursePage: React.FC = () => {
   };
 
   // Map API data to courseSections and quiz
-  const courseSections: CourseSection[] = useMemo(
-    () =>
-      course?.sections?.map(section => ({
-        id: `section-${section.id}`,
+  const courseSections = useMemo<CourseSection[]>(() => {
+    if (!course) return [];
+    
+    return course.sections.map(section => {
+      const sectionId = section.id;
+      
+      return {
+        id: `section-${sectionId}`,
         title: section.title,
         numberOfLessons: section.lessons.length.toString(),
         totalTime: calculateTotalTime(section.lessons),
-        dropDownItems: section.lessons.map((lesson, idx) => ({
+        dropDownItems: section.lessons.map(lesson => ({
           title: lesson.title,
           time: estimateLessonTime(lesson),
           type: lesson.type === 1 ? 'document' : 'video',
-          isCompleted: completedLessons.get(`section-${section.id}-${idx}`) || false,
+          isCompleted: getLessonStatus(courseId, sectionId, lesson.id),
         })),
-      })) || [],
-    [course, completedLessons]
-  );
+      };
+    });
+  }, [course, courseId, getLessonStatus]);
 
   const quizItem: QuizItem | null = useMemo(
     () =>
       course?.quiz_settings
         ? {
             title: 'Course Quiz',
-            time: `${course.quiz_settings.duration}mins`,
+            time: `${Math.floor(course.quiz_settings.duration / 60000)}mins`,
             type: 'quiz',
-            isCompleted: completedLessons.get('quiz-0') || false,
+            isCompleted: getSectionStatus(courseId, course.id),
           }
         : null,
-    [course, completedLessons]
+    [course, courseId, getSectionStatus]
   );
 
-  useEffect(() => {
-    if (courseSections.length && !activeLesson) {
-      setActiveLesson({ sectionId: courseSections[0].id, lessonIndex: 0, isQuiz: false });
-      const initial = new Map<string, boolean>();
-      courseSections.forEach(section => {
-        section.dropDownItems.forEach((_, idx) => initial.set(`${section.id}-${idx}`, false));
-      });
-      if (course?.quiz_settings) {
-        initial.set('quiz-0', false);
+  const handleLessonCompleted = async (sectionId: string, lessonIndex: number, isQuiz: boolean) => {
+    if (!course) return;
+    
+    const sectionIdNumber = parseInt(sectionId.replace('section-', ''));
+    const section = course.sections.find(s => s.id === sectionIdNumber);
+    
+    if (!section) return;
+    
+    if (isQuiz) {
+      try {
+        // If it's a quiz, we need to make an API call to mark the section as complete
+        await apiClient.post(`/course/section/complete/${course.id}`, {
+          section_id: sectionIdNumber
+        });
+        
+        // Also update local storage via context
+        markSectionComplete(courseId, sectionIdNumber);
+        
+        setAlertMsg('Quiz completed successfully!');
+        setAlertSeverity('success');
+        setAlertOpen(true);
+        
+        // Navigate to next lesson if available
+        goToNextLesson();
+      } catch (err: any) {
+        console.error('Error marking section as complete:', err.response?.data || err.message);
+        setAlertMsg('Failed to complete quiz');
+        setAlertSeverity('error');
+        setAlertOpen(true);
       }
-      setCompletedLessons(initial);
-    }
-  }, [courseSections, activeLesson, course]);
-
-  const handleLessonCompleted = (sectionId: string, lessonIndex: number, isQuiz: boolean) => {
-    const key = isQuiz ? 'quiz-0' : `${sectionId}-${lessonIndex}`;
-    if (!completedLessons.get(key)) {
-      setCompletedLessons(prev => new Map(prev).set(key, true));
-      if (!isQuiz) goToNextLesson();
+    } else {
+      // For regular lessons
+      const lesson = section.lessons[lessonIndex];
+      
+      if (!lesson) return;
+      
+      try {
+        // Only use localStorage for tracking lesson progress (through context)
+        // No API call for marking individual lessons complete
+        markLessonComplete(courseId, sectionIdNumber, lesson.id);
+        
+        setAlertMsg('Lesson completed successfully!');
+        setAlertSeverity('success');
+        setAlertOpen(true);
+        
+        // Check if all lessons in this section are complete
+        const allLessonsComplete = section.lessons.every(l => 
+          getLessonStatus(courseId, sectionIdNumber, l.id)
+        );
+        
+        if (allLessonsComplete && !course.quiz_settings) {
+          // If all lessons are complete and there's no quiz, call API to mark section as complete
+          await apiClient.post(`/course/section/complete/${course.id}`, {
+            section_id: sectionIdNumber
+          });
+          
+          // Also update local storage via context
+          markSectionComplete(courseId, sectionIdNumber);
+        }
+        
+        // Navigate to next lesson if available
+        goToNextLesson();
+      } catch (err: any) {
+        console.error('Error marking lesson complete:', err.response?.data || err.message);
+        setAlertMsg('Failed to complete lesson');
+        setAlertSeverity('error');
+        setAlertOpen(true);
+      }
     }
   };
 
@@ -462,7 +600,15 @@ const StartedCoursePage: React.FC = () => {
     if (!course?.quiz_settings) return true;
     for (const section of courseSections) {
       for (let j = 0; j < section.dropDownItems.length; j++) {
-        if (!completedLessons.get(`${section.id}-${j}`)) return true;
+        const sectionIdNumber = parseInt(section.id.replace('section-', ''));
+        const sectionObj = course.sections.find(s => s.id === sectionIdNumber);
+        if (!sectionObj) continue;
+        
+        const lessonItem = section.dropDownItems[j];
+        const lesson = sectionObj.lessons.find(l => l.title === lessonItem.title);
+        if (!lesson) continue;
+        
+        if (!getLessonStatus(courseId, sectionIdNumber, lesson.id)) return true;
       }
     }
     return false;
@@ -476,7 +622,7 @@ const StartedCoursePage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className='w-full flex items-center justify-center h-full'>
+      <div className='w-full flex items-center justify-center h-screen'>
         <div className='loader'></div>
       </div>
     );
@@ -484,19 +630,18 @@ const StartedCoursePage: React.FC = () => {
 
   if (error || !course) {
     return (
-      <div className='w-full flex items-center justify-center h-full'>
+      <div className='w-full flex items-center justify-center h-screen'>
         <p className='text-[#68049B] text-xs'>{error || 'Course not found'}</p>
       </div>
     );
   }
 
   return (
-    <div className='w-full'>
+    <div className="min-h-screen bg-[#F5F6F8]">
       <div
-        className='w-11 h-11 items-center justify-center rounded-full hidden max-sm:flex fixed p-3 top-1 left-2 z-999 flex-col gap-1'
+        className='w-11 h-11 items-center justify-center rounded-full hidden max-lg:flex fixed p-3 top-1 left-2 z-999 flex-col gap-1'
         onClick={() => {
           setIsActive(!isActive);
-          console.log('clicked');
         }}
       >
         <div className='w-full h-[2px] rounded-lg bg-black'></div>
@@ -504,23 +649,23 @@ const StartedCoursePage: React.FC = () => {
         <div className='w-full h-[2px] rounded-lg bg-black'></div>
       </div>
       <Header />
-      <div className={`flex pt-[68px] ${isActive ? 'z-99' : ''} max-sm:pt-[58px] max-sm:pl-0 h-screen bg-[rgba(249,243,253,1)]`}>
+      <div className={`flex pt-[68px] ${isActive ? 'z-99' : ''} max-lg:pt-[58px] max-lg:pl-0 h-screen bg-[rgba(249,243,253,1)]`}>
         <div
-          className={`min-w-80 w-80 px-3 pt-5 max-sm:absolute max-sm:h-full max-sm:left-0 max-sm:top-0 max-sm:bg-[rgba(249,243,253,1)] max-sm:z-99 h-full border-r border-gray-300 flex flex-col overflow-y-auto ${
-            isActive ? 'z-100 max-sm:w-[80%] max-sm:left-[-0%] max-sm:h-[800px] max-sm:pt-20' : 'max-sm:left-[-120%]'
+          className={`min-w-80 w-80 px-3 pt-5 max-lg:absolute max-lg:h-full max-lg:left-0 max-lg:top-0 max-lg:bg-[rgba(249,243,253,1)] max-lg:z-99 h-full border-r border-gray-300 flex flex-col overflow-y-auto ${
+            isActive ? 'z-100 max-lg:w-[80%] max-lg:left-[-0%] max-lg:h-[800px] max-lg:pt-20' : 'max-lg:left-[-120%]'
           }`}
         >
           <div
             onClick={() => navigate(`/my-courses`)}
-            className='max-sm:hidden cursor-pointer h-10 w-10 mb-5 rotate-180 bg-gray-300 rounded-full flex items-center justify-center'
+            className='max-lg:hidden cursor-pointer h-10 w-10 mb-5 rotate-180 bg-gray-300 rounded-full flex items-center justify-center'
           >
             <ForwardArrowSVG size={13} />
           </div>
           <h1 className='font-bold text-lg mb-4 px-1'>Course Lessons</h1>
           <div className='flex flex-col gap-2'>
-            {courseSections.map(section => (
+            {courseSections.map((section, index) => (
               <DropDownComponents
-                key={section.id}
+                key={index}
                 id={section.id}
                 title={section.title}
                 numberOfLessons={section.numberOfLessons}
@@ -537,7 +682,7 @@ const StartedCoursePage: React.FC = () => {
                 id='quiz'
                 title='Course Quiz'
                 numberOfLessons='1'
-                totalTime={`${course.quiz_settings.duration}mins`}
+                totalTime={quizItem.time}
                 isNavStyle
                 isUserOwned
                 dropDownItems={[quizItem]}
@@ -546,7 +691,7 @@ const StartedCoursePage: React.FC = () => {
             )}
           </div>
         </div>
-        <div className='flex-auto overflow-y-auto max-sm:p-0 max-sm:pt-4 p-6'>
+        <div className='flex-auto overflow-y-auto max-lg:p-0 max-lg:pt-4 p-6'>
           {activeLessonData ? (
             activeLessonData.type === 'video' ? (
               <CourseComponent
@@ -598,6 +743,14 @@ const StartedCoursePage: React.FC = () => {
           )}
         </div>
       </div>
+      
+      {/* Add AlertMessage component */}
+      <AlertMessage
+        open={alertOpen}
+        message={alertMsg}
+        severity={alertSeverity}
+        onClose={() => setAlertOpen(false)}
+      />
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CopyLinkSVG } from '../../assets/icons/icons';
 import { useAuth } from '../../context/AuthContext/AuthContext';
+import AlertMessage from '../../components/AlertMessage';
 
 interface ReferralData {
   id: number;
@@ -16,6 +17,8 @@ const ReferPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMsg, setAlertMsg] = useState('');
 
   // Fetch referral data
   useEffect(() => {
@@ -46,7 +49,8 @@ const ReferPage = () => {
       setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
     }).catch((err) => {
       console.error('Failed to copy referral code:', err);
-      alert('Failed to copy referral code');
+      setAlertMsg('Failed to copy referral code');
+      setAlertOpen(true);
     });
   };
 
@@ -96,6 +100,7 @@ const ReferPage = () => {
           <p className="text-xs text-white mt-2">Referral code copied!</p>
         )}
       </div>
+      <AlertMessage open={alertOpen} message={alertMsg} severity="purple" onClose={() => setAlertOpen(false)} />
     </div>
   );
 };
