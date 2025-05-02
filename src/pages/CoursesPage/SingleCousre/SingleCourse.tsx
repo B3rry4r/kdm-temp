@@ -149,7 +149,8 @@ const SingleCourse = () => {
     }
 
     if (course.type === 'Paid') {
-      payload.redirect_url = `http://localhost:5173/courses/course/${courseId}`;
+      const redirectUrl = window.location.href;
+      payload.redirect_url = redirectUrl;
     }
 
     try {
@@ -335,7 +336,7 @@ const SingleCourse = () => {
         {renderModalContent()}
       </Modal>
       <div className="w-full flex-[4] relative max-sm:p-4 max-lg:p-6 flex flex-col gap-2 p-10">
-        <div className="hidden fixed z-30 w-full bg-white p-4 bottom-0 max-sm:left-0 gap-3 max-lg:flex max-lg:right-0 max-lg:w-130 max-sm:flex justify-between items-center">
+        <div className="hidden fixed z-30 w-full bg-white p-4 bottom-0 max-sm:left-0 gap-3 max-lg:flex max-lg:right-0 max-lg:w-130 max-sm:w-full max-sm:flex justify-between items-center">
           {renderTagAndPrice()}
           {course.enrolled ? (
             <button

@@ -23,6 +23,7 @@ import { usePostUpdate } from "../../../context/PostUpdateContext/PostUpdateCont
 import { ChevronDown, Image as ImageIcon, MinusCircle, Smile } from "lucide-react";
 import AlertMessage from '../../../components/AlertMessage';
 import EmojiPicker from 'emoji-picker-react';
+import { Link } from 'react-router-dom';
 
 // Fallback profile image
 const defaultProfileImage = "https://via.placeholder.com/150?text=User";
@@ -606,9 +607,9 @@ const ContentCard = (props: Props) => {
     await handleCopyLink();
   };
 
-  const closeCopied = () => {
-    setIsCopied(false);
-  };
+  // const closeCopied = () => {
+  //   setIsCopied(false);
+  // };
 
   const toggleRS = async () => {
     if (!isAuthenticated || !user?.id) {
@@ -786,14 +787,9 @@ const ContentCard = (props: Props) => {
                     text="Delete Post"
                   />
                 </div>
-                {isCopied ? (
-                  <div className="w-60 max-sm:w-full max-md:w-[90%] rounded-lg p-2 bg-white absolute bottom-[-40px] left-0 flex items-center justify-between">
-                    <p className="text-xs font-bold">Post Copied</p>
-                    <div className="cursor-pointer" onClick={closeCopied}>
-                      <CloseSVG size={15} />
-                    </div>
-                  </div>
-                ) : null}
+                {
+                  isCopied ? <div className="w-full p-2 text-xs font-bold bg-white absolute bottom-[-50px] border border-gray-200 rounded-lg left-0">Post Copied</div> : null
+                }
               </div>
             ) : (
               <div className="w-50 z-2 h-auto p-5 max-md:p-3 right-0 absolute top-3 border border-gray-200 rounded-lg bg-white flex gap-3 flex-col">
@@ -813,21 +809,22 @@ const ContentCard = (props: Props) => {
                     text="Copy Post Link"
                   />
                 </div>
-                {isCopied ? (
-                  <div className="w-60 max-sm:w-full max-md:w-[90%] rounded-lg p-2 bg-white absolute bottom-[-40px] left-0 flex items-center justify-between">
-                    <p className="text-xs font-bold">Post Copied</p>
-                    <div className="cursor-pointer" onClick={closeCopied}>
-                      <CloseSVG size={15} />
-                    </div>
-                  </div>
-                ) : null}
+                {
+                  isCopied ? <div className="w-full p-2 text-xs font-bold bg-white absolute bottom-[-50px] border border-gray-200 rounded-lg left-0">Post Copied</div> : null
+                }
               </div>
             )
           ) : null}
         </div>
       </div>
-      <div className="middle-text">
-        <p className="text-sm max-md:text-xs">{props.description}</p>
+      <div className="middle-text my-2">
+        <Link to={`/comments/${props.id}`} className="block cursor-pointer"> 
+          <p 
+            className="text-sm max-md:text-xs line-clamp-5" 
+          >
+            {props.description}
+          </p>
+        </Link>
       </div>
       {props.image && (
         <div className="img w-full h-[200px] max-md:h-[180px] bg-gray-200">

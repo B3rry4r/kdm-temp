@@ -138,8 +138,9 @@ const Header = () => {
   };
 
   const handlePostSubmit = async () => {
-    if (!postContent.trim()) {
-      showAlert("Post content cannot be empty", "error");
+    // Validation: Allow post if there's text OR an image
+    if (!postContent.trim() && images.length === 0) {
+      showAlert("Please enter some text or select an image to post.", "error");
       return;
     }
 
@@ -157,10 +158,15 @@ const Header = () => {
       const formData = new FormData();
       formData.append("user_id", user.id.toString());
       formData.append("topic_id", selectedTopicId.toString());
-      formData.append("content", postContent);
 
+      // Append text content only if it exists
+      if (postContent.trim()) {
+        formData.append('content', postContent);
+      }
+
+      // Append images only if they exist
       images.forEach((image) => {
-        formData.append("images[]", image);
+        formData.append('images[]', image);
       });
 
       const response = await apiClient.post("/posts", formData, {
@@ -371,7 +377,7 @@ const Header = () => {
 
           <div className="bg-white p-2 flex flex-col items-end rounded-xl">
             <textarea
-              className="w-full h-[50px] p-2 resize-none text-sm outline-none"
+              className="w-full h-[50px] p-2 resize-none text-md outline-none"
               placeholder="Type your message..."
               value={postContent}
               onChange={(e) => setPostContent(e.target.value)}
