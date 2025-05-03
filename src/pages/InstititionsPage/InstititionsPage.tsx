@@ -172,7 +172,7 @@ const InstitutionsPage = () => {
         // Refresh the page to update UI with new community access
         setTimeout(() => {
           window.location.reload();
-        }, 1500);
+        }, 300);
       } else {
         setJoinError(response.data.message || 'Failed to join institution');
       }
