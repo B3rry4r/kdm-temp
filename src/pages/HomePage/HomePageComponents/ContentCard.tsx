@@ -818,7 +818,7 @@ const ContentCard = (props: Props) => {
         </div>
       </div>
       <div className="middle-text my-2">
-{isCommentScreen ? (
+{props.isCommentScreen ? (
 <p 
             className={`text-sm max-md:text-xs`}
           >
