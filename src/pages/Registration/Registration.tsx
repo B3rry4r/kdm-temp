@@ -69,18 +69,20 @@ const Registration: React.FC<Props> = () => {
     confirm_password: { required: true, minLength: 6 },
   };
 
-  const loginValidator = useFormValidator(loginSchema, form);
-  const registerValidator = useFormValidator(registerSchema, form);
-  const resetValidator = useFormValidator(resetSchema, form);
+  const loginValidator: any = useFormValidator(loginSchema, form);
+  const registerValidator: any = useFormValidator(registerSchema, form);
+  const resetValidator: any = useFormValidator(resetSchema, form);
 
   const handleLogin = () => handleAsync(async () => {
     if (!loginValidator.validate()) return;
     await login(form.email, form.password);
+    setForm({});
   });
 
   const handleInitiateRegistration = () => handleAsync(async () => {
     await initiateRegistration(form.email, form.phone);
     next();
+    setForm({});
   });
 
   const handleRegister = () => handleAsync(async () => {
@@ -107,11 +109,13 @@ const Registration: React.FC<Props> = () => {
     };
     console.log('Registration payload:', JSON.stringify(registrationData, null, 2));
     await register(registrationData);
+    setForm({});
   });
 
   const handleSendReset = () => handleAsync(async () => {
     await resetToken(form.email);
     next();
+    setForm({});
   });
 
   const handleResetPassword = () => handleAsync(async () => {
@@ -121,6 +125,7 @@ const Registration: React.FC<Props> = () => {
     }
     await resetPassword(form.token, form.password);
     next();
+    setForm({});
   });
 
   const renderModalContent = () => {

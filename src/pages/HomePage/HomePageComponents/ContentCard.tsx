@@ -827,7 +827,7 @@ const ContentCard = (props: Props) => {
         </Link>
       </div>
       {props.image && (
-        <div className="img w-full h-[200px] max-md:h-[180px] bg-gray-200">
+        <div className="img w-full bg-gray-200">
           <img
             src={props.image}
             alt="content"

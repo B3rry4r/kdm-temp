@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import google from "../../assets/icons/google.svg";
 import apple from "../../assets/icons/apple.svg";
 import {
@@ -115,20 +115,17 @@ const LeftNavBar = () => {
         <div className="flex mt-5 flex-col gap-6">
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
-              <Link to={"/about"}>
-                <p className="text-xs text-gray-500 cursor-pointer">About</p>
-              </Link>
-              <p className="text-xs text-gray-500 cursor-pointer">
+              <a href="https://www.kudimata.app/privacy" className="text-xs text-gray-500 cursor-pointer">
                 Privacy Policy
-              </p>
+              </a>
             </div>
             <div className="flex items-center gap-2">
-              <p className="text-xs text-gray-500 cursor-pointer">
+              <a href="https://www.kudimata.app/privacy" className="text-xs text-gray-500 cursor-pointer">
                 Content Policy
-              </p>
-              <p className="text-xs text-gray-500 cursor-pointer">
+              </a>
+              <a href="https://www.kudimata.app/privacy" className="text-xs text-gray-500 cursor-pointer">
                 User Agreement
-              </p>
+              </a>
             </div>
           </div>
           <div className="flex mt-3 flex-col mb-10 gap-3">
