@@ -828,11 +828,11 @@ const ContentCard = (props: Props) => {
 <>
 
           <p 
-            className={`text-sm max-md:text-xs ${props.description > 100 ? "line-clamp-5" : "" }`}
+            className={`text-sm max-md:text-xs ${props.description.length > 100 ? "line-clamp-5" : "" }`}
           >
             {props.description}
           </p>
-        {props.description > 100 ? (
+        {props.description.length > 100 ? (
  <Link to={`/comments/${props.id}`} className="block font-bold text-xs text-gray-200 cursor-pointer"> 
 Read More
         </Link> ) : null
