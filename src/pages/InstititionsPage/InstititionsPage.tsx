@@ -60,6 +60,7 @@ const InstitutionsPage = () => {
   const [posts, setPosts] = useState<InstitutionPost[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [isChecking, setIsChecking] = useState(true);
+  const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
@@ -77,6 +78,11 @@ const InstitutionsPage = () => {
 
   // Check membership
   useEffect(() => {
+    setIsChecking(true);
+    setInCommunity(false);
+    setError(null);
+    setPosts([]);
+    setMembers([]);
     const checkMembership = async () => {
       if (!isAuthenticated || !orgId) {
         setError('Invalid institution ID or not authenticated');
@@ -110,7 +116,10 @@ const InstitutionsPage = () => {
   // Fetch posts and members if in community
   useEffect(() => {
     if (!inCommunity || !orgId || !isAuthenticated) return;
-
+    setLoadingData(true);
+    setError(null);
+    setPosts([]);
+    setMembers([]);
     const fetchData = async () => {
       try {
         // Fetch posts
@@ -130,6 +139,8 @@ const InstitutionsPage = () => {
         }
       } catch (err: any) {
         setError('Failed to load posts or members');
+      } finally {
+        setLoadingData(false);
       }
     };
 
@@ -163,16 +174,12 @@ const InstitutionsPage = () => {
       
       console.log('Join response:', response.data);
       
-      if (response.data.success) {
+      if (response.status === 200) {
         setInCommunity(true);
         setIsModalOpen(false);
         setAlertMsg(`Successfully joined ${institutionName}`);
         setAlertOpen(true);
-        
-        // Refresh the page to update UI with new community access
-        setTimeout(() => {
-          window.location.reload();
-        }, 300);
+        window.location.reload();
       } else {
         setJoinError(response.data.message || 'Failed to join institution');
       }
@@ -247,68 +254,72 @@ const InstitutionsPage = () => {
       </Modal>
       <AlertMessage open={alertOpen} message={alertMsg} severity="purple" onClose={() => setAlertOpen(false)} />
       {inCommunity ? (
-        <div className="flex h-full">
-          <div className="p-5 max-md:p-3 flex-[4] flex flex-col gap-10 max-md:gap-6 overflow-y-auto h-full">
-            <div className="w-full min-h-[100px] max-md:min-h-[80px] bg-gray-200 rounded-xl">
-            {institutionBanner ? (
-                  <img src={institutionBanner} alt={institutionName} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-gray-300"></div>
-                )}
-            </div>
-            <div className="profile border-b border-b-gray-200 pb-10 max-sm:pb-6 max-md:pb-8 max-sm:flex-col flex gap-2 max-md:gap-3">
-              <div className="left w-20 h-20 max-md:w-16 max-md:h-16 rounded-full overflow-hidden">
-                {institutionImage ? (
-                  <img src={institutionImage} alt={institutionName} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-gray-300"></div>
-                )}
+        loadingData ? (
+          <div className="w-full flex items-center justify-center h-full"><div className="loader"></div></div>
+        ) : (
+          <div className="flex h-full">
+            <div className="p-5 max-md:p-3 flex-[4] flex flex-col gap-10 max-md:gap-6 overflow-y-auto h-full">
+              <div className="w-full min-h-[100px] max-md:min-h-[80px] bg-gray-200 rounded-xl">
+              {institutionBanner ? (
+                    <img src={institutionBanner} alt={institutionName} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gray-300"></div>
+                  )}
               </div>
-              <div className="right flex flex-col p-2 gap-2 pr-4">
-                <h1 className="text-xl max-md:text-lg font-bold">{institutionName}</h1>
-                <p className="text-xs max-md:text-[10px]">{institutionDescription}</p>
-                <div className="flex items-center gap-1">
-                  <h2 className="font-bold">{members.length || 2000}</h2>
-                  <p className="text-[10px]">Members</p>
+              <div className="profile border-b border-b-gray-200 pb-10 max-sm:pb-6 max-md:pb-8 max-sm:flex-col flex gap-2 max-md:gap-3">
+                <div className="left w-20 h-20 max-md:w-16 max-md:h-16 rounded-full overflow-hidden">
+                  {institutionImage ? (
+                    <img src={institutionImage} alt={institutionName} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gray-300"></div>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center px-8 max-md:px-4 py-1 bg-gray-200 cursor-default rounded-md gap-2 justify-center">
-                    <FollowPlus size={12} />
-                    <button className="text-gray-700 text-sm max-md:text-xs font-bold">Joined</button>
+                <div className="right flex flex-col p-2 gap-2 pr-4">
+                  <h1 className="text-xl max-md:text-lg font-bold">{institutionName}</h1>
+                  <p className="text-xs max-md:text-[10px]">{institutionDescription}</p>
+                  <div className="flex items-center gap-1">
+                    <h2 className="font-bold">{members.length || 2000}</h2>
+                    <p className="text-[10px]">Members</p>
                   </div>
-                  <ShareSVG size={12} />
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center px-8 max-md:px-4 py-1 bg-gray-200 cursor-default rounded-md gap-2 justify-center">
+                      <FollowPlus size={12} />
+                      <button className="text-gray-700 text-sm max-md:text-xs font-bold">Joined</button>
+                    </div>
+                    <ShareSVG size={12} />
+                  </div>
                 </div>
               </div>
+              {posts.length > 0 ? (
+                posts.map((postItem) => {
+                  const post = postItem; // Access the nested post object
+                  return (
+                    <ContentCard
+                      key={post.id}
+                      id={post.id.toString()}
+                      userId={post.post.user_id.toString()}
+                      title={post.post.content.substring(0, 50) + (post.post.content.length > 50 ? '...' : '')}
+                      description={post.post.content}
+                      image={post.post.image_urls[0] || null}
+                      likes={post.post.likes_count}
+                      comments={post.post.comments_count}
+                      shares={0} // Not provided in API response, default to 0
+                      author={post.name} // User data not provided in API response
+                      institution={institutionName} // Use institution name from context
+                      time={post.post.updated_at}
+                      profilePicture={post.profile_picture} // User data not provided in API response
+                    />
+                  );
+                })
+              ) : (
+                <p className="text-sm text-gray-500">No posts found for this institution.</p>
+              )}
             </div>
-            {posts.length > 0 ? (
-              posts.map((postItem) => {
-                const post = postItem; // Access the nested post object
-                return (
-                  <ContentCard
-                    key={post.id}
-                    id={post.id.toString()}
-                    userId={post.post.user_id.toString()}
-                    title={post.post.content.substring(0, 50) + (post.post.content.length > 50 ? '...' : '')}
-                    description={post.post.content}
-                    image={post.post.image_urls[0] || null}
-                    likes={post.post.likes_count}
-                    comments={post.post.comments_count}
-                    shares={0} // Not provided in API response, default to 0
-                    author={post.name} // User data not provided in API response
-                    institution={institutionName} // Use institution name from context
-                    time={post.post.updated_at}
-                    profilePicture={post.profile_picture} // User data not provided in API response
-                  />
-                );
-              })
-            ) : (
-              <p className="text-sm text-gray-500">No posts found for this institution.</p>
-            )}
+            <div className="flex-[3] max-lg:hidden max-md:flex-[2] max-sm:hidden overflow-y-auto h-full">
+              <RightSideBar  />
+            </div>
           </div>
-          <div className="flex-[3] max-lg:hidden max-md:flex-[2] max-sm:hidden overflow-y-auto h-full">
-            <RightSideBar  />
-          </div>
-        </div>
+        )
       ) : (
         <div className="p-10 max-sm:p-6 max-md:p-8 w-full flex flex-col gap-5 overflow-y-scroll">
           <div className="top w-50 max-sm:w-30 max-md:w-40 h-50 max-sm:h-30 max-md:h-40 rounded-full overflow-hidden">

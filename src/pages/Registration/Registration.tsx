@@ -7,7 +7,6 @@ import kids from '../../assets/kids.png';
 import Modal from './Modal';
 import { useAuth } from '../../context/AuthContext/AuthContext';
 import AlertMessage from '../../components/AlertMessage';
-import { useFormValidator, ValidationSchema } from '../../components/FormValidator';
 import { Eye, EyeOff } from 'lucide-react';
 
 interface Props {}
@@ -22,6 +21,7 @@ const Registration: React.FC<Props> = () => {
   const [loading, setLoading] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMsg, setAlertMsg] = useState('');
+  const [errors, setErrors] = useState<{ [key:string]: string }>({});
 
   const openFlow = (type: 'login' | 'register', corper: boolean = false) => {
     setFlow(type);
@@ -30,7 +30,11 @@ const Registration: React.FC<Props> = () => {
     setForm({});
   };
 
-  const closeModal = () => setFlow(null);
+  const closeModal = () => {
+    setFlow(null);
+    setForm({}); // Clear form on modal close to avoid persistence across flows
+  };
+
   const next = () => setStep((s) => s + 1);
   const goToLogin = () => {
     setFlow('login');
@@ -50,43 +54,81 @@ const Registration: React.FC<Props> = () => {
     }
   };
 
-  const loginSchema: ValidationSchema<any> = {
-    email: { required: true, email: true },
-    password: { required: true, minLength: 6 },
-  };
-  const registerSchema: ValidationSchema<any> = {
-    email: { required: true, email: true },
-    phone: { required: true, minLength: 8 },
-    fullName: { required: true, minLength: 2 },
-    country: { required: true },
-    gender: { required: true },
-    password: { required: true, minLength: 6 },
-    agreed: { required: true },
-  };
-  const resetSchema: ValidationSchema<any> = {
-    email: { required: true, email: true },
-    password: { required: true, minLength: 6 },
-    confirm_password: { required: true, minLength: 6 },
+  const validateLogin = () => {
+    const errs: any = {};
+    if (!form.email) errs.email = 'Email required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Invalid email';
+    if (!form.password) errs.password = 'Password required';
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
   };
 
-  const loginValidator: any = useFormValidator(loginSchema, form);
-  const registerValidator: any = useFormValidator(registerSchema, form);
-  const resetValidator: any = useFormValidator(resetSchema, form);
+  const validateInitiate = () => {
+    const errs: any = {};
+    if (!form.email) errs.email = 'Email required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Invalid email';
+    if (!form.phone) errs.phone = 'Phone required';
+    else if (!/^\d+$/.test(form.phone)) errs.phone = 'Phone must be numeric';
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const validateVerify = () => {
+    const errs: any = {};
+    if (!form.token) errs.token = 'Token required';
+    if (isCorper && !form.access_code) errs.access_code = 'Code required';
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const validateRegister = () => {
+    const errs: any = {};
+    if (!form.fullName) errs.fullName = 'Name required';
+    if (!form.country) errs.country = 'Country required';
+    if (!form.gender) errs.gender = 'Gender required';
+    if (!form.password) errs.password = 'Password required';
+    else if (form.password.length < 6) errs.password = 'Min 6 chars';
+    if (!form.agreed) errs.agreed = 'Must agree';
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const validateReset = () => {
+    const errs: any = {};
+    if (!form.email) errs.email = 'Email required';
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const validateResetPassword = () => {
+    const errs: any = {};
+    if (!form.password) errs.password = 'Password required';
+    if (!form.confirm_password) errs.confirm_password = 'Confirm required';
+    else if (form.password !== form.confirm_password) errs.confirm_password = 'No match';
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
 
   const handleLogin = () => handleAsync(async () => {
-    if (!loginValidator.validate()) return;
+    if (!validateLogin()) return;
     await login(form.email, form.password);
     setForm({});
   });
 
   const handleInitiateRegistration = () => handleAsync(async () => {
+    if (!validateInitiate()) return;
     await initiateRegistration(form.email, form.phone);
-    next();
     setForm({});
+    next();
   });
 
+  const handleVerify = () => {
+    if (!validateVerify()) return;
+    next();
+  };
+
   const handleRegister = () => handleAsync(async () => {
-    if (!registerValidator.validate()) return;
+    if (!validateRegister()) return;
     const registrationData = {
       type: isCorper ? 2 : 1,
       email: form.email,
@@ -107,22 +149,19 @@ const Registration: React.FC<Props> = () => {
         access_code: form.access_code,
       }),
     };
-    console.log('Registration payload:', JSON.stringify(registrationData, null, 2));
     await register(registrationData);
     setForm({});
   });
 
   const handleSendReset = () => handleAsync(async () => {
+    if (!validateReset()) return;
     await resetToken(form.email);
     next();
     setForm({});
   });
 
   const handleResetPassword = () => handleAsync(async () => {
-    if (!resetValidator.validate()) return;
-    if (form.password !== form.confirm_password) {
-      throw new Error('Passwords do not match');
-    }
+    if (!validateResetPassword()) return;
     await resetPassword(form.token, form.password);
     next();
     setForm({});
@@ -136,20 +175,21 @@ const Registration: React.FC<Props> = () => {
         <>
           <h2 className="text-lg font-bold mb-2">Login</h2>
           <label className="text-xs mb-1 block">Email</label>
-          {loginValidator.errors.email && <span className="text-xs text-red-500">{loginValidator.errors.email}</span>}
           <input
             type="email"
             placeholder="Email"
             className="w-full p-2 outline-none border-none bg-gray-200 rounded mb-2 text-sm"
+            value={form.email || ''}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
+          {errors.email && <span className="text-xs text-red-500">{errors.email}</span>}
           <label className="text-xs mb-1 block">Password</label>
-          {loginValidator.errors.password && <span className="text-xs text-red-500">{loginValidator.errors.password}</span>}
           <div className="relative mb-2">
             <input
               type={showPwd ? 'text' : 'password'}
               placeholder="Password"
-              className="w-full p-2 outline-none border-none bg-gray-200 rounded text-sm"
+              className="w-full p-2 outline-none border-none bg-gray-200 rounded mb-2 text-sm"
+              value={form.password || ''}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
             />
             <button
@@ -159,6 +199,7 @@ const Registration: React.FC<Props> = () => {
               {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
+          {errors.password && <span className="text-xs text-red-500">{errors.password}</span>}
           <div className="flex w-full gap-2 flex-col justify-end items-end mb-4">
             <button
               className="text-xs"
@@ -193,13 +234,14 @@ const Registration: React.FC<Props> = () => {
             Enter your email to receive a reset token
           </p>
           <label className="text-xs mb-1 block">Email</label>
-          {resetValidator.errors.email && <span className="text-xs text-red-500">{resetValidator.errors.email}</span>}
           <input
             type="email"
             placeholder="Email"
             className="w-full p-2 outline-none border-none bg-gray-200 rounded mb-4 text-sm"
+            value={form.email || ''}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
+          {errors.email && <span className="text-xs text-red-500">{errors.email}</span>}
           <button
             onClick={handleSendReset}
             className="w-full py-2 bg-[#FFD30F] flex items-center justify-center mb-2 rounded font-bold disabled:opacity-50"
@@ -221,8 +263,10 @@ const Registration: React.FC<Props> = () => {
             type="text"
             placeholder="Reset token"
             className="w-full p-2 outline-none border-none bg-gray-200 rounded mb-4 text-sm"
+            value={form.token || ''}
             onChange={(e) => setForm({ ...form, token: e.target.value })}
           />
+          {errors.token && <span className="text-xs text-red-500">{errors.token}</span>}
           <button
             onClick={next}
             className="w-full py-2 bg-[#FFD30F] flex items-center justify-center mb-2 rounded font-bold disabled:opacity-50"
@@ -237,12 +281,12 @@ const Registration: React.FC<Props> = () => {
         <>
           <h2 className="text-lg font-bold mb-2">Set New Password</h2>
           <label className="text-xs mb-1 block">New Password</label>
-          {resetValidator.errors.password && <span className="text-xs text-red-500">{resetValidator.errors.password}</span>}
           <div className="relative mb-2">
             <input
               type={showPwd ? 'text' : 'password'}
               placeholder="New Password"
               className="w-full p-2 outline-none border-none bg-gray-200 rounded text-sm"
+              value={form.password || ''}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
             />
             <button
@@ -252,13 +296,14 @@ const Registration: React.FC<Props> = () => {
               {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
+          {errors.password && <span className="text-xs text-red-500">{errors.password}</span>}
           <label className="text-xs mb-1 block">Confirm New Password</label>
-          {resetValidator.errors.confirm_password && <span className="text-xs text-red-500">{resetValidator.errors.confirm_password}</span>}
           <div className="relative mb-4">
             <input
               type={showPwd ? 'text' : 'password'}
               placeholder="Confirm New Password"
               className="w-full p-2 outline-none border-none bg-gray-200 rounded text-sm"
+              value={form.confirm_password || ''}
               onChange={(e) => setForm({ ...form, confirm_password: e.target.value })}
             />
             <button
@@ -268,6 +313,7 @@ const Registration: React.FC<Props> = () => {
               {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
+          {errors.confirm_password && <span className="text-xs text-red-500">{errors.confirm_password}</span>}
           <button
             onClick={handleResetPassword}
             className="w-full py-2 bg-[#FFD30F] flex items-center justify-center mb-2 rounded font-bold disabled:opacity-50"
@@ -299,21 +345,23 @@ const Registration: React.FC<Props> = () => {
         <>
           <h2 className="text-lg font-bold mb-2">Request Verification Token</h2>
           <label className="text-xs mb-1 block">Email</label>
-          {registerValidator.errors.email && <span className="text-xs text-red-500">{registerValidator.errors.email}</span>}
           <input
             type="email"
             placeholder="Email"
             className="w-full p-2 outline-none border-none bg-gray-200 rounded mb-2 text-sm"
+            value={form.email || ''}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
+          {errors.email && <span className="text-xs text-red-500">{errors.email}</span>}
           <label className="text-xs mb-1 block">Phone Number</label>
-          {registerValidator.errors.phone && <span className="text-xs text-red-500">{registerValidator.errors.phone}</span>}
           <input
-            type="text"
+            type="tel"
             placeholder="Phone Number"
             className="w-full p-2 outline-none border-none bg-gray-200 rounded mb-4 text-sm"
+            value={form.phone || ''}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
           />
+          {errors.phone && <span className="text-xs text-red-500">{errors.phone}</span>}
           <button
             onClick={handleInitiateRegistration}
             className="w-full py-2 flex items-center justify-center bg-[#FFD30F] mb-5 rounded font-bold disabled:opacity-50"
@@ -333,23 +381,28 @@ const Registration: React.FC<Props> = () => {
           <label className="text-xs mb-1 block">Verification Token</label>
           <input
             type="text"
+            id="token"
+            value={form.token || ''}
             placeholder="Token from email"
             className="w-full p-2 outline-none border-none bg-gray-200 rounded mb-2 text-sm"
             onChange={(e) => setForm({ ...form, token: e.target.value })}
           />
+          {errors.token && <span className="text-xs text-red-500">{errors.token}</span>}
           {isCorper && (
             <>
               <label className="text-xs mb-1 block">Community Code</label>
               <input
                 type="text"
+                value={form.access_code || ''}
                 placeholder="Community Code"
                 className="w-full p-2 outline-none border-none bg-gray-200 rounded mb-2 text-sm"
                 onChange={(e) => setForm({ ...form, access_code: e.target.value })}
               />
+              {errors.access_code && <span className="text-xs text-red-500">{errors.access_code}</span>}
             </>
           )}
           <button
-            onClick={next}
+            onClick={handleVerify}
             className="w-full py-2 bg-[#FFD30F] flex items-center justify-center rounded font-bold disabled:opacity-50"
             disabled={loading || !form.token}
           >
@@ -366,10 +419,13 @@ const Registration: React.FC<Props> = () => {
             type="text"
             placeholder="Full Name"
             className="w-full p-2 outline-none border-none bg-gray-200 rounded mb-2 text-sm"
+            value={form.fullName || ''}
             onChange={(e) => setForm({ ...form, fullName: e.target.value })}
           />
+          {errors.fullName && <span className="text-xs text-red-500">{errors.fullName}</span>}
           <label className="text-xs mb-1 block">Country</label>
           <select
+            value={form.country || ''}
             onChange={(e) => setForm({ ...form, country: e.target.value })}
             className="w-full p-2 outline-none border-none bg-gray-200 rounded mb-2 text-sm"
           >
@@ -379,8 +435,10 @@ const Registration: React.FC<Props> = () => {
             <option value="PG">Papua New Guinea</option>
             <option value="GW">Guinea-Bissau</option>
           </select>
+          {errors.country && <span className="text-xs text-red-500">{errors.country}</span>}
           <label className="text-xs mb-1 block">Gender</label>
           <select
+            value={form.gender || ''}
             onChange={(e) => setForm({ ...form, gender: e.target.value })}
             className="w-full p-2 outline-none border-none bg-gray-200 rounded mb-2 text-sm"
           >
@@ -388,6 +446,7 @@ const Registration: React.FC<Props> = () => {
             <option value="Male">Male</option>
             <option value="Female">Female</option>
           </select>
+          {errors.gender && <span className="text-xs text-red-500">{errors.gender}</span>}
           {isCorper && (
             <>
               <label className="text-xs mb-1 block">State of Origin</label>
@@ -395,6 +454,7 @@ const Registration: React.FC<Props> = () => {
                 type="text"
                 placeholder="State of Origin"
                 className="w-full p-2 outline-none border-none bg-gray-200 rounded mb-2 text-sm"
+                value={form.state_of_origin || ''}
                 onChange={(e) => setForm({ ...form, state_of_origin: e.target.value })}
               />
               <label className="text-xs mb-1 block">State Code</label>
@@ -402,6 +462,7 @@ const Registration: React.FC<Props> = () => {
                 type="text"
                 placeholder="State Code (e.g., KN/90/90)"
                 className="w-full p-2 outline-none border-none bg-gray-200 rounded mb-2 text-sm"
+                value={form.state_code || ''}
                 onChange={(e) => setForm({ ...form, state_code: e.target.value })}
               />
               <label className="text-xs mb-1 block">Sector</label>
@@ -409,6 +470,7 @@ const Registration: React.FC<Props> = () => {
                 type="text"
                 placeholder="Sector (e.g., Agency Banking)"
                 className="w-full p-2 outline-none border-none bg-gray-200 rounded mb-2 text-sm"
+                value={form.sector || ''}
                 onChange={(e) => setForm({ ...form, sector: e.target.value })}
               />
               <label className="text-xs mb-1 block">NIN</label>
@@ -416,6 +478,7 @@ const Registration: React.FC<Props> = () => {
                 type="text"
                 placeholder="National Identification Number"
                 className="w-full p-2 outline-none border-none bg-gray-200 rounded mb-2 text-sm"
+                value={form.nin || ''}
                 onChange={(e) => setForm({ ...form, nin: e.target.value })}
               />
               <label className="text-xs mb-1 block">Callup Number (Optional)</label>
@@ -423,6 +486,7 @@ const Registration: React.FC<Props> = () => {
                 type="text"
                 placeholder="Callup Number"
                 className="w-full p-2 outline-none border-none bg-gray-200 rounded mb-2 text-sm"
+                value={form.callup_number || ''}
                 onChange={(e) => setForm({ ...form, callup_number: e.target.value })}
               />
             </>
@@ -433,6 +497,7 @@ const Registration: React.FC<Props> = () => {
               type={showPwd ? 'text' : 'password'}
               placeholder="Password"
               className="w-full p-2 outline-none border-none bg-gray-200 rounded mb-2 text-sm"
+              value={form.password || ''}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
             />
             <button
@@ -442,11 +507,13 @@ const Registration: React.FC<Props> = () => {
               {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
+          {errors.password && <span className="text-xs text-red-500">{errors.password}</span>}
           <label className="text-xs mb-1 block">Referral Code (Optional)</label>
           <input
             type="text"
             placeholder="Referral Code"
             className="w-full p-2 outline-none border-none bg-gray-200 rounded mb-4 text-sm"
+            value={form.referral || ''}
             onChange={(e) => setForm({ ...form, referral: e.target.value })}
           />
           <div className="flex items-start mb-4">
@@ -454,6 +521,7 @@ const Registration: React.FC<Props> = () => {
               type="checkbox"
               id="agree"
               className="h-4 w-4 text-[#68049B] outline-none border-none bg-gray-200 rounded"
+              checked={form.agreed || false}
               onChange={(e) => setForm({ ...form, agreed: e.target.checked })}
             />
             <label htmlFor="agree" className="ml-2 text-[10px]">
@@ -462,10 +530,11 @@ const Registration: React.FC<Props> = () => {
               and{' '}
               <span className="text-[#68049B] cursor-pointer">User Agreement</span>.
             </label>
+            {errors.agreed && <span className="text-xs text-red-500">{errors.agreed}</span>}
           </div>
           <button
             onClick={handleRegister}
-            className="w-full py-2 bg-[#FFD30F] flex items-center justify-center rounded font-bold disabled:opacity-50"
+            className="w-full py-2 bg-[#FFD30F] cursor-pointer flex items-center justify-center rounded font-bold disabled:opacity-50"
             disabled={loading || !form.agreed}
           >
             {loading ? <div className="loader"></div> : 'Sign Up'}
