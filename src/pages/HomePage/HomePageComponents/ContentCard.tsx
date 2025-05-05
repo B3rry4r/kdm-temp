@@ -818,13 +818,28 @@ const ContentCard = (props: Props) => {
         </div>
       </div>
       <div className="middle-text my-2">
-        <Link to={`/comments/${props.id}`} className="block cursor-pointer"> 
-          <p 
-            className="text-sm max-md:text-xs line-clamp-5" 
+{isCommentScreen ? (
+<p 
+            className={`text-sm max-md:text-xs`}
           >
             {props.description}
           </p>
-        </Link>
+) :(
+<>
+
+          <p 
+            className={`text-sm max-md:text-xs ${props.description > 100 ? "line-clamp-5" : "" }`}
+          >
+            {props.description}
+          </p>
+        {props.description > 100 ? (
+ <Link to={`/comments/${props.id}`} className="block font-bold text-xs text-gray-200 cursor-pointer"> 
+Read More
+        </Link> ) : null
+
+}
+</>
+)
       </div>
       {props.image && (
         <div className="img w-full bg-gray-200">
