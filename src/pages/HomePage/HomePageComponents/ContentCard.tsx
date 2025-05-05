@@ -839,7 +839,7 @@ Read More
 
 }
 </>
-)
+) }
       </div>
       {props.image && (
         <div className="img w-full bg-gray-200">
