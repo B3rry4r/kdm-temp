@@ -833,7 +833,7 @@ const ContentCard = (props: Props) => {
             {props.description}
           </p>
         {props.description.length > 100 ? (
- <Link to={`/comments/${props.id}`} className="block font-bold text-xs text-gray-200 cursor-pointer"> 
+ <Link to={`/comments/${props.id}`} className="block text-xs text-gray-300 cursor-pointer"> 
 Read More
         </Link> ) : null
 
