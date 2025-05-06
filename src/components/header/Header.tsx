@@ -363,7 +363,7 @@ const Header = () => {
           </Link>
         </div>
       )}
-      <Modal isOpen={isCreateOpen} onClose={clearPostModalState} width="w-[500px] max-lg:w-[450px] max-md:w-[90%] max-sm:w-[95%]">
+      <Modal isOpen={isCreateOpen} onClose={clearPostModalState} width="w-[60%] max-lg:w-[60%] max-md:w-[90%] max-sm:w-[95%]">
         <div className="w-full flex flex-col gap-3">
           <h1 className="font-bold text-xl max-lg:text-lg max-md:text-base max-sm:text-sm">Create Post</h1>
 
@@ -377,7 +377,7 @@ const Header = () => {
 
           <div className="bg-white p-2 flex flex-col items-end rounded-xl">
             <textarea
-              className="w-full h-[50px] p-2 resize-none text-md outline-none"
+              className="w-full h-[80px] p-2 resize-none text-md outline-none"
               placeholder="Type your message..."
               value={postContent}
               onChange={(e) => setPostContent(e.target.value)}

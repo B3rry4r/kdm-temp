@@ -818,13 +818,18 @@ const ContentCard = (props: Props) => {
         </div>
       </div>
       <div className="middle-text my-2">
-        <Link to={`/comments/${props.id}`} className="block cursor-pointer"> 
           <p 
-            className="text-sm max-md:text-xs line-clamp-5" 
+            className={`text-sm max-md:text-xs ${props.description.length > 100 ? 'line-clamp-5' : ''}`} 
           >
             {props.description}
           </p>
-        </Link>
+        {
+          props.description.length > 100 ? (
+            <Link to={`/comments/${props.id}`} className="block text-gray-200 text-xs font-bold cursor-pointer"> 
+            Read More
+            </Link>
+          ) : null
+        }
       </div>
       {props.image && (
         <div className="img w-full bg-gray-200">
