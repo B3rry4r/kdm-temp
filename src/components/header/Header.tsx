@@ -377,7 +377,7 @@ const Header = () => {
 
           <div className="bg-white p-2 flex flex-col items-end rounded-xl">
             <textarea
-              className="w-full h-[100px] p-2 resize-none text-md outline-none"
+              className="w-full max-sm:h-[50%] h-[250px] p-2 resize-none text-md outline-none"
               placeholder="Type your message..."
               value={postContent}
               onChange={(e) => setPostContent(e.target.value)}

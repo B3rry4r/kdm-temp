@@ -507,7 +507,7 @@ const ContentCard = (props: Props) => {
           </div>
           <div className="bg-white p-2 flex flex-col items-end rounded-xl">
             <textarea
-              className="w-full h-[50px] p-2 resize-none text-sm outline-none"
+              className="w-full max-sm:h-[50%] h-[250px] p-2 resize-none text-sm outline-none"
               placeholder="Type your message..."
               value={postContent}
               onChange={(e) => {
@@ -951,7 +951,7 @@ const ContentCard = (props: Props) => {
 
         </div>
       </div>
-      <Modal isOpen={!!flow} onClose={closeModal}>
+      <Modal width={`${flow == 'edit' ? "w-[50%]" : "w-96"}`} isOpen={!!flow} onClose={closeModal}>
         {renderModalContent()}
       </Modal>
       <Modal isOpen={isOverlayOpen} onClose={toggleReportOverlay}>
