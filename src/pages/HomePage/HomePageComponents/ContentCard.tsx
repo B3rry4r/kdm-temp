@@ -545,9 +545,9 @@ const ContentCard = (props: Props) => {
                 <ImageIcon size={20} />
               </label>
               <div className="relative">
-                <Smile 
-                  size={20} 
-                  className="cursor-pointer" 
+                <Smile
+                  size={20}
+                  className="cursor-pointer"
                   onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                 />
                 {showEmojiPicker && (
@@ -668,32 +668,34 @@ const ContentCard = (props: Props) => {
   const isSelf = !!user?.id && props.userId === user.id.toString();
 
   // Topic selector modal
-  {isTopicSelectorOpen && (
-    <Modal isOpen={isTopicSelectorOpen} onClose={() => setIsTopicSelectorOpen(false)}>
-      <div className="w-full flex flex-col gap-3">
-        <h1 className="font-bold text-xl">Select Topic</h1>
-        {dataLoading ? (
-          <p>Loading topics...</p>
-        ) : dataError ? (
-          <p className="text-red-500">{dataError}</p>
-        ) : topics.length === 0 ? (
-          <p>No topics available</p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {topics.map((topic) => (
-              <div
-                key={topic.id}
-                onClick={() => handleTopicSelect(topic.id)}
-                className="p-2 cursor-pointer hover:bg-gray-100 rounded"
-              >
-                {topic.name}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </Modal>
-  )}
+  {
+    isTopicSelectorOpen && (
+      <Modal isOpen={isTopicSelectorOpen} onClose={() => setIsTopicSelectorOpen(false)}>
+        <div className="w-full flex flex-col gap-3">
+          <h1 className="font-bold text-xl">Select Topic</h1>
+          {dataLoading ? (
+            <p>Loading topics...</p>
+          ) : dataError ? (
+            <p className="text-red-500">{dataError}</p>
+          ) : topics.length === 0 ? (
+            <p>No topics available</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {topics.map((topic) => (
+                <div
+                  key={topic.id}
+                  onClick={() => handleTopicSelect(topic.id)}
+                  className="p-2 cursor-pointer hover:bg-gray-100 rounded"
+                >
+                  {topic.name}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
+    )
+  }
 
   if (isLoading) {
     return (
@@ -727,9 +729,8 @@ const ContentCard = (props: Props) => {
                 <button
                   onClick={toggleFollow}
                   disabled={isFollowingLoading || isSelf}
-                  className={`py-1 px-2 text-xs cursor-pointer rounded font-bold disabled:opacity-50 disabled:pointer-events-none ${
-                    isFollowing ? 'bg-gray-200 text-black' : 'bg-[#FFD30F] text-black'
-                  }`}
+                  className={`py-1 px-2 text-xs cursor-pointer rounded font-bold disabled:opacity-50 disabled:pointer-events-none ${isFollowing ? 'bg-gray-200 text-black' : 'bg-[#FFD30F] text-black'
+                    }`}
                 >
                   {isFollowing ? 'Following' : 'Follow'}
                 </button>
@@ -795,11 +796,11 @@ const ContentCard = (props: Props) => {
               <div className="w-50 z-2 h-auto p-5 max-md:p-3 right-0 absolute top-3 border border-gray-200 rounded-lg bg-white flex gap-3 flex-col">
                 <div className={`cursor-pointer ${isSelf ? 'opacity-50 pointer-events-none' : ''}`} onClick={isSelf ? undefined : toggleFollow}>
                   <DynamicRow
-                    icon={ isFollowing ?
-                    <MinusCircle size={20} />
+                    icon={isFollowing ?
+                      <MinusCircle size={20} />
                       :
                       <FollowPlus size={20} />
-                  }
+                    }
                     text={isFollowing ? "Unfollow Author" : "Follow Author"}
                   />
                 </div>
@@ -818,28 +819,33 @@ const ContentCard = (props: Props) => {
         </div>
       </div>
       <div className="middle-text my-2">
-{props.isCommentScreen ? (
-<p 
+        {props.isCommentScreen ? (
+          <>
+          <p
             className={`text-sm max-md:text-xs`}
-          >
+            >
             {props.description}
           </p>
-) :(
-<>
+          <Link to={`/`} className="block text-xs text-gray-300 cursor-pointer">
+                Read Less
+              </Link>
+            </>
+        ) : (
+          <>
 
-          <p 
-            className={`text-sm max-md:text-xs ${props.description.length > 100 ? "line-clamp-5" : "" }`}
-          >
-            {props.description}
-          </p>
-        {props.description.length > 100 ? (
- <Link to={`/comments/${props.id}`} className="block text-xs text-gray-300 cursor-pointer"> 
-Read More
-        </Link> ) : null
+            <p
+              className={`text-sm max-md:text-xs ${props.description.length > 100 ? "line-clamp-5" : ""}`}
+            >
+              {props.description}
+            </p>
+            {props.description.length > 100 ? (
+              <Link to={`/comments/${props.id}`} className="block text-xs text-gray-300 cursor-pointer">
+                Read More
+              </Link>) : null
 
-}
-</>
-) }
+            }
+          </>
+        )}
       </div>
       {props.image && (
         <div className="img w-full bg-gray-200">
@@ -942,7 +948,7 @@ Read More
               }
             </div>
           ) : null}
-              
+
         </div>
       </div>
       <Modal isOpen={!!flow} onClose={closeModal}>
