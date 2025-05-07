@@ -110,7 +110,7 @@ const CourseComponent: React.FC<CourseProps> = ({ title, description, videoUrl, 
             </div>
           </div>
         </div>
-        <div className='w  w-full h-80 max-lg:h-60 relative'>
+        <div className='w w-full h-80 max-lg:h-60 relative'>
           {isYouTube ? (
             <div id="youtube-player" className='w-full h-full' />
           ) : (
@@ -127,16 +127,16 @@ const CourseComponent: React.FC<CourseProps> = ({ title, description, videoUrl, 
               null
             ) : (
               <button
-            onClick={togglePlayPause}
-            className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[#68049B] rounded-full p-2 opacity-10 hover:opacity-100 transition-opacity duration-200'
-            style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            {isPlaying ? (
-              <Pause size={18} color='white' />
-            ) : (
-              <Play size={18} color='white' />
-            )}
-          </button>
+                onClick={togglePlayPause}
+                className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[#68049B] rounded-full p-2 opacity-10 hover:opacity-100 transition-opacity duration-200'
+                style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                {isPlaying ? (
+                  <Pause size={18} color='white' />
+                ) : (
+                  <Play size={18} color='white' />
+                )}
+              </button>
             )
           }
         </div>
@@ -420,6 +420,20 @@ const StartedCoursePage: React.FC = () => {
   
   const courseId = id ? parseInt(id) : 0;
 
+  // Function to mark section complete via API
+  const markSectionCompleteAPI = async (courseId: number, sectionId: number) => {
+    console.log(`[DEBUG] Calling API to mark section ${sectionId} complete for course ${courseId}`);
+    console.log(`[DEBUG] Endpoint: /course/section/complete/2, Body:`, { section_id: sectionId });
+    try {
+      const response = await apiClient.post(`/course/section/complete/${sectionId}`);
+      console.log(`[DEBUG] Section ${sectionId} marked complete successfully:`, response.data);
+      return response.data;
+    } catch (err: any) {
+      console.error(`[DEBUG] Error marking section ${sectionId} complete:`, err.response?.data || err.message);
+      throw err;
+    }
+  };
+
   useEffect(() => {
     const fetchCourse = async () => {
       if (!id) {
@@ -559,73 +573,68 @@ const StartedCoursePage: React.FC = () => {
   );
 
   const handleLessonCompleted = async (sectionId: string, lessonIndex: number, isQuiz: boolean) => {
-    if (!course) return;
+    if (!course) {
+      console.log(`[DEBUG] Course data is null`);
+      return;
+    }
+    
+    if (isQuiz) {
+      console.log(`[DEBUG] Quiz selected for course ${courseId}, navigating to quiz page`);
+      navigate(`/quiz/${course.id}`);
+      return;
+    }
     
     const sectionIdNumber = parseInt(sectionId.replace('section-', ''));
     const section = course.sections.find(s => s.id === sectionIdNumber);
     
-    if (!section) return;
+    if (!section) {
+      console.log(`[DEBUG] Section ${sectionIdNumber} not found for course ${courseId}`);
+      return;
+    }
     
-    if (isQuiz) {
-      try {
-        // If it's a quiz, we need to make an API call to mark the section as complete
-        await apiClient.post(`/course/section/complete/${course.id}`, {
-          section_id: sectionId
-        });
-        
-        // Also update local storage via context
-        markSectionComplete(courseId, sectionIdNumber);
-        
-        setAlertMsg('Quiz completed successfully!');
-        setAlertSeverity('success');
-        setAlertOpen(true);
-        
-        // Navigate to next lesson if available
-        goToNextLesson();
-      } catch (err: any) {
-        console.error('Error marking section as complete:', err.response?.data || err.message);
-        setAlertMsg('Failed to complete quiz');
-        setAlertSeverity('error');
-        setAlertOpen(true);
-      }
-    } else {
-      // For regular lessons
-      const lesson = section.lessons[lessonIndex];
+    const lesson = section.lessons[lessonIndex];
+    if (!lesson) {
+      console.log(`[DEBUG] Lesson at index ${lessonIndex} not found in section ${sectionIdNumber}`);
+      return;
+    }
+    
+    console.log(`[DEBUG] Marking lesson ${lesson.id} (${lesson.title}) complete in section ${sectionIdNumber}`);
+    try {
+      markLessonComplete(courseId, sectionIdNumber, lesson.id);
+      setAlertMsg('Lesson completed successfully!');
+      setAlertSeverity('success');
+      setAlertOpen(true);
       
-      if (!lesson) return;
+      // Check if all lessons in this section are complete
+      const allLessonsComplete = section.lessons.every(l => 
+        getLessonStatus(courseId, sectionIdNumber, l.id)
+      );
       
-      try {
-        // Only use localStorage for tracking lesson progress (through context)
-        // No API call for marking individual lessons complete
-        markLessonComplete(courseId, sectionIdNumber, lesson.id);
-        
-        setAlertMsg('Lesson completed successfully!');
-        setAlertSeverity('success');
-        setAlertOpen(true);
-        
-        // Check if all lessons in this section are complete
-        const allLessonsComplete = section.lessons.every(l => 
-          getLessonStatus(courseId, sectionIdNumber, l.id)
-        );
-        
-        if (allLessonsComplete && !course.quiz_settings) {
-          // If all lessons are complete and there's no quiz, call API to mark section as complete
-          await apiClient.post(`/course/section/complete/${course.id}`, {
-            section_id: sectionIdNumber
-          });
-          
-          // Also update local storage via context
+      console.log(`[DEBUG] All lessons complete in section ${sectionIdNumber}: ${allLessonsComplete}`);
+      
+      if (allLessonsComplete && section.lessons.length > 0) {
+        console.log(`[DEBUG] Attempting to mark section ${sectionIdNumber} complete for course ${courseId}`);
+        try {
+          await markSectionCompleteAPI(courseId, sectionIdNumber);
           markSectionComplete(courseId, sectionIdNumber);
+          setAlertMsg('Section completed successfully!');
+          setAlertSeverity('success');
+          setAlertOpen(true);
+          console.log(`[DEBUG] Section ${sectionIdNumber} marked complete in context`);
+        } catch (err: any) {
+          console.error(`[DEBUG] Failed to mark section ${sectionIdNumber} complete:`, err.response?.data || err.message);
+          setAlertMsg(`Failed to complete section: ${err.response?.data?.message || err.message}`);
+          setAlertSeverity('error');
+          setAlertOpen(true);
         }
-        
-        // Navigate to next lesson if available
-        goToNextLesson();
-      } catch (err: any) {
-        console.error('Error marking lesson complete:', err.response?.data || err.message);
-        setAlertMsg('Failed to complete lesson');
-        setAlertSeverity('error');
-        setAlertOpen(true);
       }
+      
+      goToNextLesson();
+    } catch (err: any) {
+      console.error(`[DEBUG] Error marking lesson ${lesson.id} complete:`, err.response?.data || err.message);
+      setAlertMsg(`Failed to complete lesson: ${err.response?.data?.message || err.message}`);
+      setAlertSeverity('error');
+      setAlertOpen(true);
     }
   };
 
@@ -798,10 +807,7 @@ const StartedCoursePage: React.FC = () => {
                 courseId={course.id}
                 onPreviousLesson={goToPreviousLesson}
                 onNextLesson={goToNextLesson}
-                onStartQuiz={() => {
-                  handleLessonCompleted('quiz', 0, true);
-                  navigate(`/quiz/${course.id}`);
-                }}
+                onStartQuiz={() => handleLessonCompleted('quiz', 0, true)}
               />
             )
           ) : (
@@ -810,7 +816,6 @@ const StartedCoursePage: React.FC = () => {
         </div>
       </div>
       
-      {/* Add AlertMessage component */}
       <AlertMessage
         open={alertOpen}
         message={alertMsg}
