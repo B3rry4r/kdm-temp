@@ -136,6 +136,7 @@ const CommentPage = () => {
         {post && (
           <ContentCard
             isCommentScreen={true}
+            isPostScreen={true}
             title={post.title || "Post"}
             description={post.content || ""}
             image={

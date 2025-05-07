@@ -92,6 +92,7 @@ type Props = {
   id?: string;
   userId?: string;
   profilePicture?: string | null;
+  isPostScreen?: boolean;
 };
 
 const ContentCard = (props: Props) => {
@@ -823,16 +824,18 @@ const ContentCard = (props: Props) => {
         </div>
       </div>
       <div className="middle-text my-2">
-        {props.isCommentScreen ? (
+        {props.isPostScreen ? (
           <>
           <p
             className={`text-sm max-md:text-xs`}
             >
             {props.description}
           </p>
-          <Link to={`/`} className="block text-xs text-gray-300 cursor-pointer">
-                Read Less
-              </Link>
+          {props.description.length > 100 ? (
+              <Link to={`/`} className="block text-xs text-gray-500 cursor-pointer">
+                Read less
+              </Link>) : null
+            }
             </>
         ) : (
           <>
@@ -843,7 +846,7 @@ const ContentCard = (props: Props) => {
               {props.description}
             </p>
             {props.description.length > 100 ? (
-              <Link to={`/comments/${props.id}`} className="block text-xs text-gray-300 cursor-pointer">
+              <Link to={`/comments/${props.id}`} className="block text-xs text-gray-500 cursor-pointer">
                 Read More
               </Link>) : null
 
