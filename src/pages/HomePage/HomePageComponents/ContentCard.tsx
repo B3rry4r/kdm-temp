@@ -925,7 +925,7 @@ const ContentCard = (props: Props) => {
             <div className="w-55 h-auto p-5 max-md:p-3 right-0 z-2 absolute top-3 border border-gray-200 rounded-lg bg-white flex gap-3 flex-col">
               <div className="cursor-pointer" onClick={handleCopyLink}>
                 <DynamicRow
-                  icon={<CopyLinkSVG size={20} />}
+                  icon={<CopyLinkSVG size={17} />}
                   text="Copy Post Link"
                 />
               </div>
@@ -949,7 +949,7 @@ const ContentCard = (props: Props) => {
               </div>
               <div className="cursor-pointer" onClick={shareOnLinkedIn}>
                 <DynamicRow
-                  icon={<FaLinkedin color="#544D58" size={20} />}
+                  icon={<FaLinkedin color="#544D58" size={17} />}
                   text="Share On LinkedIn"
                 />
               </div>

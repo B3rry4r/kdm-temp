@@ -259,7 +259,9 @@ type RowProps = {
 export const DynamicRow = (props: RowProps) => {
   return (
     <div className='w-full flex items-center gap-2'>
+      <div className="w-5 flex items-center justify-center">
       {props.icon}
+      </div>
       <p className='text-sm font-bold'>{props.text}</p>
     </div>
   );
