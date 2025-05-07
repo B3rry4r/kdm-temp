@@ -79,6 +79,20 @@ const MyCoursesPage = () => {
     return course && typeof course.id !== 'undefined';
   };
 
+  // Helper function to determine button text based on course status
+  const getButtonText = (courseStatus: string): string => {
+    switch (courseStatus) {
+      case 'in-progress':
+        return 'Continue Course';
+      case 'completed':
+        return 'View Course';
+      case 'not-started':
+        return 'Start Course';
+      default:
+        return 'Start Course'; // Fallback for unexpected status
+    }
+  };
+
   const filteredCourses = courses
     .filter(isValidCourse)
     .filter((course) => {
@@ -193,7 +207,12 @@ const MyCoursesPage = () => {
     );
   }
 
-  console.log('About to render courses:', filteredCourses);
+  console.log('About to render courses:', filteredCourses.map(course => ({
+    id: course.id,
+    title: course.course_title,
+    status: course.course_status,
+    buttonText: getButtonText(course.course_status)
+  })));
 
   return (
     <div className='w-full relative max-sm:p-4 p-10 overflow-y-auto h-full'>
@@ -253,6 +272,7 @@ const MyCoursesPage = () => {
               tag={course.price === null ? 'Free' : `₦${course.price}`}
               isStyleTwo={true}
               completionPercent={course.completion_percent}
+              buttonText={getButtonText(course.course_status)}
             />
           ) : null
         ))}

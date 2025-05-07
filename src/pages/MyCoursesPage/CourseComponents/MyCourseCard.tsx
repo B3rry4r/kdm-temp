@@ -9,6 +9,7 @@ type Props = {
   tag: string;
   isStyleTwo?: boolean;
   completionPercent?: number;
+  buttonText: string;
 }
 
 const MyCourseCard = (props: Props) => {
@@ -47,7 +48,7 @@ const MyCourseCard = (props: Props) => {
           onClick={handleEnrollClick}
           className='py-3 px-4 bg-[#FFD30F] cursor-pointer rounded-lg font-bold text-xs'
         >
-          Continue Course
+          {props.buttonText}
         </button>
       ) : (
         <div className='flex items-center mt-3 justify-between'>
