@@ -77,7 +77,7 @@ const LeftNavBar = () => {
   return (
     <div className="w-full h-full relative">
       <div
-        className={`w-full max-sm:absolute max-sm:bg-[rgba(249,243,253,1)] transition-all z-29 h-full border-r flex flex-col gap-6 border-gray-200 max-sm:pl-6 max-md:pl-3 max-lg:pl-0 pl-10 py-10 px-5`}
+        className={`w-full max-sm:absolute max-sm:bg-[rgba(249,243,253,1)] transition-all z-29 h-full border-r flex flex-col gap-6 border-gray-200 max-sm:pl-8 max-md:pl-3 max-lg:pl-0 pl-10 py-10 px-5`}
       >
         <div className="flex flex-col gap-6">
           {navItems.map((item) => {

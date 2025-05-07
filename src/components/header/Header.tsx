@@ -237,8 +237,8 @@ const Header = () => {
   return (
     <div className="flex justify-between items-center max-xl:px-10 max-lg:px-6 max-md:px-10 max-sm:px-10 absolute top-0 left-0 right-0 bg-white z-10 p-1 px-20 pr-32">
       <Link to={"/"}>
-        <div className="w-50 max-lg:w-44 max-md:w-40 max-sm:w-36 bg-gray">
-          <img src={logo} alt="logo" className="object-cover max-lg:w-40 max-md:w-36 max-sm:w-32" />
+        <div className="w-50 max-lg:w-44 max-md:w-40 max-sm:w-40 bg-gray">
+          <img src={logo} alt="logo" className="object-cover max-lg:w-40 max-md:w-40 max-sm:w-36" />
         </div>
       </Link>
       
@@ -290,7 +290,7 @@ const Header = () => {
         </div>
           <div
             onClick={() => setIsCreateOpen(!isCreateOpen)}
-            className="bg-[#FFD30F] max-lg:px-4 max-lg:py-1.5 max-md:px-3 max-sm:px-2 max-sm:py-1.5 max-sm:rounded-full cursor-pointer rounded-md flex items-center gap-2 justify-center p-2 px-6"
+            className="bg-[#FFD30F] max-lg:px-4 max-lg:py-1.5 max-md:px-3 max-sm:px-2 max-sm:py-2 max-sm:rounded-full cursor-pointer rounded-md flex items-center gap-2 justify-center p-2 px-6"
           >
             <PlusSVG2 size={12} />
             <p className="text-sm font-bold max-lg:text-xs max-md:text-[10px] max-sm:hidden">Create Post</p>

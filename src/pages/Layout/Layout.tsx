@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Header from "../../components/header/Header";
 import LeftNavBar from "../../components/LeftNavBar/LeftNavBar";
+import { CloseSVG } from "../../assets/icons/icons";
 
 type Props = {
   children: React.ReactNode;
@@ -12,16 +13,23 @@ const Layout = (props: Props) => {
   return (
     <div className="w-full">
       
-      <div className={`${IsActive ? 'bg-[rgba(249,243,253,1)] ' : 'bg-white'} w-11 h-11 items-center justify-center rounded-full hidden max-md:flex fixed p-3 top-1 left-2 z-999 flex-col gap-1`}
+      <div className={`${IsActive ? 'bg-[rgba(249,243,253,1)] right-23 ' : 'left-2 bg-white'} transition-all transition w-11 h-11 items-center justify-center rounded-full hidden max-md:flex fixed p-3 top-1 z-999 flex-col gap-1`}
       onClick={()=>{
         setIsActive(!IsActive)
         console.log('clidked');
         
       }}
       >
+        {
+          IsActive ? (
+          <CloseSVG size={18} color={'gray'} />
+          ) : 
+            <div className="flex items-center gap-1 flex-col w-5 justify-center rounded-full">
+                      <div className="w-full h-[2px] rounded-lg bg-black"></div>
         <div className="w-full h-[2px] rounded-lg bg-black"></div>
         <div className="w-full h-[2px] rounded-lg bg-black"></div>
-        <div className="w-full h-[2px] rounded-lg bg-black"></div>
+            </div>
+        }
       </div>
       <Header />
       <div className={`flex ${IsActive ? 'z-99' : ''} pt-[68px] max-sm:pt-[58px] max-md:pl-0 max-lg:pl-10 max-md:pl-0 h-screen bg-[rgba(249,243,253,1)] pl-18`}>
