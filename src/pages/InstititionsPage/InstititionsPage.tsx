@@ -60,7 +60,7 @@ const InstitutionsPage = () => {
   const [posts, setPosts] = useState<InstitutionPost[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [isChecking, setIsChecking] = useState(true);
-  const [loadingData, setLoadingData] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
@@ -179,7 +179,7 @@ const InstitutionsPage = () => {
         setIsModalOpen(false);
         setAlertMsg(`Successfully joined ${institutionName}`);
         setAlertOpen(true);
-        window.location.reload();
+        // window.location.reload();
       } else {
         setJoinError(response.data.message || 'Failed to join institution');
       }
