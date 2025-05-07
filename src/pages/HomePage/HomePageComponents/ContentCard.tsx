@@ -13,6 +13,7 @@ import {
   ShareSVG,
   XSVG,
 } from "../../../assets/icons/icons";
+import { FaLinkedin } from 'react-icons/fa'
 import { DynamicRow } from "../../MyCoursesPage/SingleCousre/MySingleCourse";
 import Modal from "../../Registration/Modal";
 import UserCard from "./UserCard";
@@ -122,7 +123,7 @@ const ContentCard = (props: Props) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMsg, setAlertMsg] = useState('');
-  const [alertSeverity, setAlertSeverity] = useState<'success' | 'error'>('success');
+  const [alertSeverity, setAlertSeverity] = useState<'success' | 'error' | 'purple'>('success');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Fetch initial saved state and followers
@@ -214,7 +215,6 @@ const ContentCard = (props: Props) => {
       console.error('Like error:', err.response?.data || err.message);
       setAlertMsg('Failed to like/unlike post. Please try again.');
       setAlertSeverity('error');
-      console.log(alertSeverity);
       setAlertOpen(true);
     } finally {
       setIsLiking(false);
@@ -477,6 +477,15 @@ const ContentCard = (props: Props) => {
     console.log('Instagram share initiated (copy link provided)');
   };
 
+  // Share on LinkedIn
+  const shareOnLinkedIn = () => {
+    const postUrl = getPostUrl();
+    const shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(postUrl)}`;
+    console.log('Sharing on LinkedIn:', shareUrl);
+    window.open(shareUrl, '_blank', 'width=600,height=400');
+    setIsShareOpen(false);
+  };
+
   // Handle emoji selection
   const onEmojiClick = (emojiObject: any) => {
     setPostContent(prevContent => prevContent + emojiObject.emoji);
@@ -607,10 +616,6 @@ const ContentCard = (props: Props) => {
     await handleCopyLink();
   };
 
-  // const closeCopied = () => {
-  //   setIsCopied(false);
-  // };
-
   const toggleRS = async () => {
     if (!isAuthenticated || !user?.id) {
       console.log('Unauthenticated user attempted to report post, redirecting to /login');
@@ -641,7 +646,6 @@ const ContentCard = (props: Props) => {
 
   const navigateToComment = () => {
     if (!isAuthenticated || !user?.id) {
-      // console.log('Unauthenticated user attempted to comment, redirecting to /login');
       navigate('/login');
       return;
     }
@@ -943,12 +947,17 @@ const ContentCard = (props: Props) => {
                   text="Share On Twitter"
                 />
               </div>
+              <div className="cursor-pointer" onClick={shareOnLinkedIn}>
+                <DynamicRow
+                  icon={<FaLinkedin color="#544D58" size={20} />}
+                  text="Share On LinkedIn"
+                />
+              </div>
               {
                 isCopied ? <div className="w-full p-2 text-xs font-bold bg-white absolute bottom-[-50px] border border-gray-200 rounded-lg left-0">Post Copied</div> : null
               }
             </div>
           ) : null}
-
         </div>
       </div>
       <Modal width={`${flow == 'edit' ? "w-[50%]" : "w-96"}`} isOpen={!!flow} onClose={closeModal}>
@@ -975,7 +984,7 @@ const ContentCard = (props: Props) => {
           </div>
         ) : null}
       </Modal>
-      <AlertMessage open={alertOpen} onClose={() => setAlertOpen(false)} severity="purple" message={alertMsg} />
+      <AlertMessage open={alertOpen} onClose={() => setAlertOpen(false)} severity={alertSeverity} message={alertMsg} />
     </div>
   );
 };

@@ -13,6 +13,13 @@ const contentOuterClasses = 'w-full max-lg:pr-0 h-full pr-60 flex flex-col';
 const contentHeaderClasses = 'w-full max-lg:px-4 max-lg:py-0 max-lg:pb-10 px-20 border-b border-gray-300 py-20';
 const contentButtonContainerClasses = 'flex items-center justify-center p-4';
 
+// Function to check if URL is YouTube and extract video ID
+const getYouTubeVideoId = (url: string): string | null => {
+  const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+  const match = url.match(regex);
+  return match ? match[1] : null;
+};
+
 interface CourseProps {
   title: string;
   description: string;
@@ -25,9 +32,58 @@ interface CourseProps {
 const CourseComponent: React.FC<CourseProps> = ({ title, description, videoUrl, onComplete, onPreviousLesson, onNextLesson }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const playerRef = useRef<any>(null); // Reference for YouTube player
+  const [isYouTube, setIsYouTube] = useState(false);
+  const youtubeVideoId = getYouTubeVideoId(videoUrl);
+
+  // Load YouTube IFrame Player API
+  useEffect(() => {
+    if (youtubeVideoId) {
+      setIsYouTube(true);
+      // Load the IFrame Player API code asynchronously
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+
+      // Initialize YouTube player when API is ready
+      (window as any).onYouTubeIframeAPIReady = () => {
+        playerRef.current = new (window as any).YT.Player('youtube-player', {
+          height: '100%',
+          width: '100%',
+          videoId: youtubeVideoId,
+          playerVars: {
+            controls: 1, // Show default controls for seeking
+            modestbranding: 1,
+          },
+          events: {
+            onStateChange: (event: any) => {
+              setIsPlaying(event.data === (window as any).YT.PlayerState.PLAYING);
+            },
+          },
+        });
+      };
+    } else {
+      setIsYouTube(false);
+    }
+
+    // Cleanup
+    return () => {
+      if (youtubeVideoId) {
+        delete (window as any).onYouTubeIframeAPIReady;
+      }
+    };
+  }, [youtubeVideoId]);
 
   const togglePlayPause = () => {
-    if (videoRef.current) {
+    if (isYouTube && playerRef.current) {
+      if (isPlaying) {
+        playerRef.current.pauseVideo();
+      } else {
+        playerRef.current.playVideo();
+      }
+      setIsPlaying(!isPlaying);
+    } else if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
       } else {
@@ -54,16 +110,25 @@ const CourseComponent: React.FC<CourseProps> = ({ title, description, videoUrl, 
             </div>
           </div>
         </div>
-        <div className='w-full h-80 max-lg:h-60 relative'>
-          <video
-            ref={videoRef}
-            src={videoUrl}
-            className='w-full h-full object-cover'
-            onEnded={() => setIsPlaying(false)}
-          />
-          <button
+        <div className='w  w-full h-80 max-lg:h-60 relative'>
+          {isYouTube ? (
+            <div id="youtube-player" className='w-full h-full' />
+          ) : (
+            <video
+              ref={videoRef}
+              src={videoUrl}
+              className='w-full h-full object-cover'
+              controls // Enable default controls for seeking
+              onEnded={() => setIsPlaying(false)}
+            />
+          )}
+          {
+            isYouTube ? (
+              null
+            ) : (
+              <button
             onClick={togglePlayPause}
-            className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[#68049B] rounded-full p-2 opacity-70 hover:opacity-100 transition-opacity duration-200'
+            className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[#68049B] rounded-full p-2 opacity-10 hover:opacity-100 transition-opacity duration-200'
             style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             {isPlaying ? (
@@ -72,6 +137,8 @@ const CourseComponent: React.FC<CourseProps> = ({ title, description, videoUrl, 
               <Play size={18} color='white' />
             )}
           </button>
+            )
+          }
         </div>
       </div>
       <div className={contentButtonContainerClasses}>
@@ -503,7 +570,7 @@ const StartedCoursePage: React.FC = () => {
       try {
         // If it's a quiz, we need to make an API call to mark the section as complete
         await apiClient.post(`/course/section/complete/${course.id}`, {
-          section_id: sectionIdNumber
+          section_id: sectionId
         });
         
         // Also update local storage via context

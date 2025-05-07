@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import MyCourseCard from './CourseComponents/MyCourseCard';
 import { useAuth } from '../../context/AuthContext/AuthContext';
-import AlertMessage from '../../components/AlertMessage';
 import { useSearch } from '../../components/header/Header';
 
 interface Course {
@@ -34,65 +33,55 @@ const MyCoursesPage = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [filter, setFilter] = useState<string>('All');
   const [isLoading, setIsLoading] = useState(true);
-  const [alertOpen, setAlertOpen] = useState(false);
-  const [alertMsg, setAlertMsg] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const { searchQuery } = useSearch();
 
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const response = await apiClient.get<MyCourseResponse[]>('/my/courses');
-        console.log('Raw API response:', response.data);
+  const fetchCourses = async () => {
+    try {
+      const response = await apiClient.get<MyCourseResponse[]>('/my/courses');
+      console.log('Raw API response:', response.data);
+      
+      const transformedCourses = response.data.map(item => {
+        const course = item.course || {};
+        const id = item.course_id || course.id;
+        const completion_percent = item.completion_percent || 0;
+        const course_status = item.course_status || 'not-started';
         
-        // More cautious transformation of the data
-        const transformedCourses = response.data.map(item => {
-          // Check if properties exist before accessing
-          const course = item.course || {};
-          const id = item.course_id || course.id;
-          const completion_percent = item.completion_percent || 0;
-          const course_status = item.course_status || 'not-started';
-          
-          return {
-            id: id,
-            course_title: course.course_title || 'Untitled Course',
-            description: course.description || 'No description available',
-            course_image: course.course_image || '',
-            type: course.type || 'Unknown',
-            price: course.price,
-            org_id: course.org_id,
-            completion_percent: completion_percent,
-            course_status: course_status
-          };
-        });
-        
-        console.log('Transformed courses:', transformedCourses);
-        setCourses(transformedCourses);
-      } catch (err: any) {
-        console.error('Error fetching courses:', err.response?.data || err.message);
-        setAlertMsg('Failed to load courses');
-        setAlertOpen(true);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+        return {
+          id: id,
+          course_title: course.course_title || 'Untitled Course',
+          description: course.description || 'No description available',
+          course_image: course.course_image || '',
+          type: course.type || 'Unknown',
+          price: course.price,
+          org_id: course.org_id,
+          completion_percent: completion_percent,
+          course_status: course_status
+        };
+      });
+      
+      console.log('Transformed courses:', transformedCourses);
+      setCourses(transformedCourses);
+      setError(null);
+    } catch (err: any) {
+      console.error('Error fetching courses:', err.response?.data || err.message);
+      setError('Failed to load courses. Please try again later.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchCourses();
   }, [apiClient]);
 
-  // Add a type guard function to validate the course object
   const isValidCourse = (course: any): course is Course => {
-    return (
-      course && 
-      typeof course.id !== 'undefined'
-      // Remove the other strict validations that are failing
-    );
+    return course && typeof course.id !== 'undefined';
   };
 
-  // Use the type guard and search query when filtering courses
   const filteredCourses = courses
     .filter(isValidCourse)
     .filter((course) => {
-      // Filter by category
       const categoryMatches = 
         filter === 'All' ? true :
         filter === 'In Progress' ? course.course_status === 'in-progress' :
@@ -100,7 +89,6 @@ const MyCoursesPage = () => {
         filter === 'Completed' ? course.course_status === 'completed' :
         true;
       
-      // Filter by search query
       const searchMatches = !searchQuery.trim() ? true : (
         (course.course_title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
          course.description?.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -120,8 +108,44 @@ const MyCoursesPage = () => {
     );
   }
 
-  // If we have courses but no filtered courses, show a message
-  if (courses.length > 0 && filteredCourses.length === 0) {
+  if (error) {
+    return (
+      <div className='w-full relative max-sm:p-4 p-10 overflow-y-auto h-full'>
+        <div className='flex flex-col gap-3'>
+          <p className='text-xl font-bold'>My Courses</p>
+          <div className='mt-8 text-center'>
+            <p className='text-lg text-red-600'>{error}</p>
+            <button
+              className='mt-4 px-4 py-2 bg-[#68049B] text-white rounded'
+              onClick={() => {
+                setIsLoading(true);
+                setError(null);
+                fetchCourses();
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!courses.length) {
+    return (
+      <div className='w-full relative max-sm:p-4 p-10 overflow-y-auto h-full'>
+        <div className='flex flex-col gap-3'>
+          <p className='text-xl font-bold'>My Courses</p>
+          <div className='mt-8 text-center'>
+            <p className='text-sm'>No courses available.</p>
+            <p className='text-sm mt-2'>You haven’t enrolled in any courses yet.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (filteredCourses.length === 0) {
     return (
       <div className='w-full relative max-sm:p-4 p-10 overflow-y-auto h-full'>
         <div className='flex flex-col gap-3'>
@@ -165,12 +189,10 @@ const MyCoursesPage = () => {
           )}
           <p className='text-sm mt-2'>Try selecting a different filter or check back later.</p>
         </div>
-        <AlertMessage open={alertOpen} message={alertMsg} severity="purple" onClose={() => setAlertOpen(false)} />
       </div>
     );
   }
 
-  // Optional: Add debug logging right before rendering the course list
   console.log('About to render courses:', filteredCourses);
 
   return (
@@ -235,7 +257,6 @@ const MyCoursesPage = () => {
           ) : null
         ))}
       </div>
-      <AlertMessage open={alertOpen} message={alertMsg} severity="purple" onClose={() => setAlertOpen(false)} />
     </div>
   );
 };

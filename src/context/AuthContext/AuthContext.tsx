@@ -222,7 +222,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     state_code?: string;
     sector?: string;
     nin?: string;
-    callup_number?: string | null;
+    // callup_number?: string | null;
     access_code?: string;
     profile_picture?: string;
   }) => {

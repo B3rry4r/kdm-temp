@@ -146,9 +146,7 @@ const SingleCourse = () => {
         payload.org_id = course.org_id;
       }
       payload.code = code;
-    }
-
-    if (course.type === 'Paid') {
+    } else if (course.type === 'Paid') {
       const redirectUrl = window.location.href;
       payload.redirect_url = redirectUrl;
     }
@@ -165,13 +163,14 @@ const SingleCourse = () => {
         setPaymentStatus('success');
         setModalType('payment');
         setIsModalOpen(true);
+        setAlertMsg('Successfully enrolled in the course!');
+        setAlertOpen(true);
       }
     } catch (err: any) {
       console.error('Error enrolling:', err.response?.data || err.message);
       setEnrollError(err.response?.data?.message || 'Failed to enroll');
-      if (err.response?.status === 401) {
-        setModalType('auth');
-      }
+      setModalType(err.response?.status === 401 ? 'auth' : 'payment');
+      setPaymentStatus('failed');
       setIsModalOpen(true);
     } finally {
       setIsEnrolling(false);
@@ -200,6 +199,12 @@ const SingleCourse = () => {
       return;
     }
     
+    // Handle free courses
+    if (course.type === 'Free') {
+      enrollCourse();
+      return;
+    }
+    
     // Handle organization courses
     if (course.type === 'Org') {
       setModalType('org');
@@ -209,7 +214,7 @@ const SingleCourse = () => {
       return;
     }
     
-    // Proceed with enrollment for free or paid courses
+    // Handle paid courses
     enrollCourse();
   };
 
@@ -249,13 +254,14 @@ const SingleCourse = () => {
     if (modalType === 'payment') {
       return (
         <div className="flex flex-col gap-4">
-          <h2 className="text-lg font-bold text-[#68049B]">
-            {paymentStatus === 'success' ? 'Payment Successful' : 'Payment Failed'}
-          </h2>
+          <h2 className="text-lg font-bold text-[#68049B]">{paymentStatus === 'success'
+              ? 'Enrollment successful'
+              : 'Enrollment Failed'}
+              </h2>
           <p className="text-sm text-gray-600">
             {paymentStatus === 'success'
               ? 'You have successfully enrolled in the course!'
-              : enrollError || 'Payment verification failed. Please try again.'}
+              : enrollError || 'Enrollment failed. Please try again.'}
           </p>
           <button
             onClick={paymentStatus === 'success' ? () => navigate('/my-courses') : handleEnrollClick}

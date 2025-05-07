@@ -13,6 +13,7 @@ interface Course {
   type: string;
   price: string | number | null;
   org_id: number | null;
+  enrolled: boolean;
 }
 
 const CoursesPage = () => {
@@ -30,8 +31,12 @@ const CoursesPage = () => {
     const fetchCourses = async () => {
       try {
         const response = await apiClient.get<Course[]>('/courses');
-        setCourses(response.data);
-        alertSeverity;
+        const courseData = response.data.map(course => ({
+          ...course,
+          enrolled: course.enrolled ?? false, // Default to false if enrolled is undefined
+        }));
+        console.log('Fetched courses:', courseData.map(c => ({ id: c.id, title: c.title, enrolled: c.enrolled })));
+        setCourses(courseData);
       } catch (err: any) {
         console.error('Error fetching courses:', err.response?.data || err.message);
         setAlertMsg('Failed to load courses');
@@ -48,6 +53,10 @@ const CoursesPage = () => {
   useEffect(() => {
     if (courses.length > 0) {
       const filtered = courses.filter((course) => {
+        // Exclude enrolled courses
+        if (course.enrolled) return false;
+
+        // Filter by category
         const categoryMatches = 
           filter === 'All' ? true :
           filter === 'Free' ? course.type === filter :
@@ -55,6 +64,7 @@ const CoursesPage = () => {
           filter === 'Institution' ? (course.org_id !== null || course.type === 'Org') :
           true;
         
+        // Filter by search query
         const searchMatches = !searchQuery.trim() ? true : (
           (course.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
            course.description?.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -64,7 +74,12 @@ const CoursesPage = () => {
       });
       
       setFilteredCourses(filtered);
-      console.log('Filtered courses with search:', { filter, searchQuery, count: filtered.length });
+      console.log('Filtered courses:', { 
+        filter, 
+        searchQuery, 
+        count: filtered.length, 
+        courses: filtered.map(c => ({ id: c.id, title: c.title, enrolled: c.enrolled }))
+      });
     }
   }, [courses, filter, searchQuery]);
 
@@ -143,10 +158,10 @@ const CoursesPage = () => {
         </div>
       ) : (
         <div className="w-full text-center py-8">
-          <p className="text-gray-500">No courses found matching your search.</p>
+          <p className="text-gray-500">No courses found matching your criteria.</p>
         </div>
       )}
-      <AlertMessage open={alertOpen} message={alertMsg} severity="purple" onClose={() => setAlertOpen(false)} />
+      <AlertMessage open={alertOpen} message={alertMsg} severity={alertSeverity} onClose={() => setAlertOpen(false)} />
     </div>
   );
 };

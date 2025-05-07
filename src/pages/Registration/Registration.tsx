@@ -8,6 +8,7 @@ import Modal from './Modal';
 import { useAuth } from '../../context/AuthContext/AuthContext';
 import AlertMessage from '../../components/AlertMessage';
 import { Eye, EyeOff } from 'lucide-react';
+import countryCodes from '../../data/countryCodes.json';
 
 interface Props {}
 
@@ -16,30 +17,32 @@ const Registration: React.FC<Props> = () => {
   const [flow, setFlow] = useState<'login' | 'register' | null>(null);
   const [isCorper, setIsCorper] = useState<boolean>(false);
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState<any>({});
+  const [form, setForm] = useState<any>({ countryCode: '+234' });
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMsg, setAlertMsg] = useState('');
-  const [errors, setErrors] = useState<{ [key:string]: string }>({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  // Sort country codes by name for better UX
+  const sortedCountryCodes = [...countryCodes].sort((a, b) => a.name.localeCompare(b.name));
 
   const openFlow = (type: 'login' | 'register', corper: boolean = false) => {
     setFlow(type);
     setIsCorper(corper);
     setStep(0);
-    setForm({});
+    setForm({ countryCode: '+234' });
   };
 
   const closeModal = () => {
     setFlow(null);
-    setForm({}); // Clear form on modal close to avoid persistence across flows
+    setForm({ countryCode: '+234' });
   };
 
   const next = () => setStep((s) => s + 1);
   const goToLogin = () => {
     setFlow('login');
     setStep(0);
-    setForm({});
   };
 
   const handleAsync = async (action: () => Promise<void>) => {
@@ -69,6 +72,7 @@ const Registration: React.FC<Props> = () => {
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Invalid email';
     if (!form.phone) errs.phone = 'Phone required';
     else if (!/^\d+$/.test(form.phone)) errs.phone = 'Phone must be numeric';
+    if (!form.countryCode) errs.countryCode = 'Country code required';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -112,13 +116,13 @@ const Registration: React.FC<Props> = () => {
   const handleLogin = () => handleAsync(async () => {
     if (!validateLogin()) return;
     await login(form.email, form.password);
-    setForm({});
+    setForm({ countryCode: '+234' });
   });
 
   const handleInitiateRegistration = () => handleAsync(async () => {
     if (!validateInitiate()) return;
-    await initiateRegistration(form.email, form.phone);
-    setForm({});
+    const fullPhone = `${form.countryCode}${form.phone}`;
+    await initiateRegistration(form.email, fullPhone);
     next();
   });
 
@@ -132,7 +136,7 @@ const Registration: React.FC<Props> = () => {
     const registrationData = {
       type: isCorper ? 2 : 1,
       email: form.email,
-      phone: form.phone,
+      phone: `${form.countryCode}${form.phone}`,
       token: form.token,
       firstname: form.fullName?.split(' ')[0] || '',
       lastname: form.fullName?.split(' ').slice(1).join(' ') || '-',
@@ -150,21 +154,21 @@ const Registration: React.FC<Props> = () => {
       }),
     };
     await register(registrationData);
-    setForm({});
+    setForm({ countryCode: '+234' });
   });
 
   const handleSendReset = () => handleAsync(async () => {
     if (!validateReset()) return;
     await resetToken(form.email);
     next();
-    setForm({});
+    setForm({ countryCode: '+234' });
   });
 
   const handleResetPassword = () => handleAsync(async () => {
     if (!validateResetPassword()) return;
     await resetPassword(form.token, form.password);
     next();
-    setForm({});
+    setForm({ countryCode: '+234' });
   });
 
   const renderModalContent = () => {
@@ -354,13 +358,27 @@ const Registration: React.FC<Props> = () => {
           />
           {errors.email && <span className="text-xs text-red-500">{errors.email}</span>}
           <label className="text-xs mb-1 block">Phone Number</label>
-          <input
-            type="tel"
-            placeholder="Phone Number"
-            className="w-full p-2 outline-none border-none bg-gray-200 rounded mb-4 text-sm"
-            value={form.phone || ''}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
-          />
+          <div className="flex items-center gap-2 mb-4">
+            <select
+              value={form.countryCode || '+234'}
+              onChange={(e) => setForm({ ...form, countryCode: e.target.value })}
+              className="w-24 p-2 outline-none border-none bg-gray-200 rounded text-sm"
+            >
+              {sortedCountryCodes.map((country, index) => (
+                <option key={index} value={country.dial_code}>
+                  {`${country.dial_code} ${country.code}`}
+                </option>
+              ))}
+            </select>
+            <input
+              type="tel"
+              placeholder="Phone Number"
+              className="flex-1 p-2 outline-none border-none bg-gray-200 rounded text-sm"
+              value={form.phone || ''}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            />
+          </div>
+          {errors.countryCode && <span className="text-xs text-red-500">{errors.countryCode}</span>}
           {errors.phone && <span className="text-xs text-red-500">{errors.phone}</span>}
           <button
             onClick={handleInitiateRegistration}
@@ -412,7 +430,7 @@ const Registration: React.FC<Props> = () => {
       );
 
       if (step === 2) return (
-        <>
+        <div className="">
           <h2 className="text-lg font-bold mb-2">Complete Sign Up</h2>
           <label className="text-xs mb-1 block">Full Name</label>
           <input
@@ -481,7 +499,7 @@ const Registration: React.FC<Props> = () => {
                 value={form.nin || ''}
                 onChange={(e) => setForm({ ...form, nin: e.target.value })}
               />
-              <label className="text-xs mb-1 block">Callup Number (Optional)</label>
+              <label className="text-xs mb-1 block">Callup Number</label>
               <input
                 type="text"
                 placeholder="Callup Number"
@@ -539,7 +557,7 @@ const Registration: React.FC<Props> = () => {
           >
             {loading ? <div className="loader"></div> : 'Sign Up'}
           </button>
-        </>
+        </div>
       );
     }
 
