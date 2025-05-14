@@ -46,7 +46,6 @@ const MyCoursesPage = () => {
         const id = item.course_id || course.id;
         const completion_percent = item.completion_percent || 0;
         const course_status = item.course_status || 'not-started';
-        
         return {
           id: id,
           course_title: course.course_title || 'Untitled Course',

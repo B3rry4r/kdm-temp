@@ -34,62 +34,151 @@ const CourseComponent: React.FC<CourseProps> = ({ title, description, videoUrl, 
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<any>(null); // Reference for YouTube player
   const [isYouTube, setIsYouTube] = useState(false);
+  const [isYouTubeLoading, setIsYouTubeLoading] = useState(false); // Track YouTube loading state
+  const [playerError, setPlayerError] = useState<string | null>(null); // Track player errors
   const youtubeVideoId = getYouTubeVideoId(videoUrl);
 
   // Load YouTube IFrame Player API
   useEffect(() => {
     if (youtubeVideoId) {
       setIsYouTube(true);
-      // Load the IFrame Player API code asynchronously
-      const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+      setIsYouTubeLoading(true); // Start loading
+      console.log(`[DEBUG] Loading YouTube API for video ID: ${youtubeVideoId}`);
+
+      // Check if API is already loaded to prevent duplicate scripts
+      if (!(window as any).YT || !(window as any).YT.Player) {
+        const tag = document.createElement('script');
+        tag.src = 'https://www.youtube.com/iframe_api';
+        tag.onerror = () => {
+          console.error('[ERROR] Failed to load YouTube IFrame API script');
+          setPlayerError('Failed to load YouTube API');
+          setIsYouTubeLoading(false); // Stop loading on error
+        };
+        tag.onload = () => {
+          console.log('[DEBUG] YouTube IFrame API script loaded successfully');
+        };
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        if (firstScriptTag && firstScriptTag.parentNode) {
+          firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        } else {
+          console.error('[ERROR] No script tags found in document');
+          setPlayerError('Cannot load YouTube API: No script tags found');
+          setIsYouTubeLoading(false); // Stop loading on error
+          return;
+        }
+      } else {
+        console.log('[DEBUG] YouTube API already loaded');
+      }
 
       // Initialize YouTube player when API is ready
       (window as any).onYouTubeIframeAPIReady = () => {
-        playerRef.current = new (window as any).YT.Player('youtube-player', {
-          height: '100%',
-          width: '100%',
-          videoId: youtubeVideoId,
-          playerVars: {
-            controls: 1, // Show default controls for seeking
-            modestbranding: 1,
-          },
-          events: {
-            onStateChange: (event: any) => {
-              setIsPlaying(event.data === (window as any).YT.PlayerState.PLAYING);
+        console.log('[DEBUG] YouTube IFrame API is ready');
+        try {
+          if (!document.getElementById('youtube-player')) {
+            console.error('[ERROR] YouTube player div not found');
+            setPlayerError('YouTube player container not found');
+            setIsYouTubeLoading(false); // Stop loading on error
+            return;
+          }
+
+          playerRef.current = new (window as any).YT.Player('youtube-player', {
+            height: '100%',
+            width: '100%',
+            videoId: youtubeVideoId,
+            playerVars: {
+              controls: 1, // Show default controls for seeking
+              modestbranding: 1,
+              origin: window.location.origin, // Explicitly set origin
             },
-          },
-        });
+            events: {
+              onReady: () => {
+                console.log('[DEBUG] YouTube player is ready');
+                setPlayerError(null); // Clear any previous errors
+                setIsYouTubeLoading(false); // Stop loading when player is ready
+              },
+              onStateChange: (event: any) => {
+                const state = event.data;
+                console.log(`[DEBUG] YouTube player state changed: ${state}`);
+                setIsPlaying(state === (window as any).YT.PlayerState.PLAYING);
+              },
+              onError: (event: any) => {
+                const errorCode = event.data;
+                console.error(`[ERROR] YouTube player error: Code ${errorCode}`);
+                setPlayerError(`YouTube player error: Code ${errorCode}`);
+                setIsYouTubeLoading(false); // Stop loading on error
+              },
+            },
+          });
+        } catch (err: any) {
+          console.error('[ERROR] Failed to initialize YouTube player:', err.message);
+          setPlayerError('Failed to initialize YouTube player');
+          setIsYouTubeLoading(false); // Stop loading on error
+        }
       };
     } else {
       setIsYouTube(false);
+      setIsYouTubeLoading(false); // No loading for non-YouTube videos
+      console.log('[DEBUG] Not a YouTube video, using native video player');
     }
 
     // Cleanup
     return () => {
+      console.log('[DEBUG] Cleaning up YouTube player');
       if (youtubeVideoId) {
         delete (window as any).onYouTubeIframeAPIReady;
+        if (playerRef.current && typeof playerRef.current.destroy === 'function') {
+          try {
+            playerRef.current.destroy();
+            console.log('[DEBUG] YouTube player destroyed');
+          } catch (err: any) {
+            console.error('[ERROR] Error destroying YouTube player:', err.message);
+          }
+        }
+        playerRef.current = null;
       }
     };
   }, [youtubeVideoId]);
 
   const togglePlayPause = () => {
     if (isYouTube && playerRef.current) {
-      if (isPlaying) {
-        playerRef.current.pauseVideo();
-      } else {
-        playerRef.current.playVideo();
+      try {
+        if (!playerRef.current.getPlayerState) {
+          console.error('[ERROR] YouTube player not initialized');
+          setPlayerError('YouTube player not initialized');
+          return;
+        }
+        const currentState = playerRef.current.getPlayerState();
+        console.log(`[DEBUG] Toggling play/pause. Current state: ${currentState}`);
+        if (isPlaying) {
+          playerRef.current.pauseVideo();
+          console.log('[DEBUG] Paused YouTube video');
+        } else {
+          playerRef.current.playVideo();
+          console.log('[DEBUG] Playing YouTube video');
+        }
+        setIsPlaying(!isPlaying);
+      } catch (err: any) {
+        console.error('[ERROR] Error toggling YouTube video playback:', err.message);
+        setPlayerError('Error playing YouTube video');
       }
-      setIsPlaying(!isPlaying);
     } else if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
+      try {
+        console.log('[DEBUG] Toggling native video player');
+        if (isPlaying) {
+          videoRef.current.pause();
+          console.log('[DEBUG] Paused native video');
+        } else {
+          videoRef.current.play();
+          console.log('[DEBUG] Playing native video');
+        }
+        setIsPlaying(!isPlaying);
+      } catch (err: any) {
+        console.error('[ERROR] Error toggling native video playback:', err.message);
+        setPlayerError('Error playing video');
       }
-      setIsPlaying(!isPlaying);
+    } else {
+      console.error('[ERROR] No video player available');
+      setPlayerError('No video player available');
     }
   };
 
@@ -102,24 +191,39 @@ const CourseComponent: React.FC<CourseProps> = ({ title, description, videoUrl, 
             <p className='text-xs text-gray-700 mt-2'>{description}</p>
           </div>
           <div className='flex items-center gap-2'>
-            <div onClick={onPreviousLesson} className='items-center p-2 cursor-pointer bg-gray-200 rounded-full rotate-180 flex w-7 h-7 justify-center'>
+            <div onClick={onPreviousLesson} className='items-center p-2 cursor-pointer bg-gray-200 rounded-full rotate-180 overlfow-hidden flex w-7 h-7 justify-center'>
               <ForwardArrowSVG size={13} />
             </div>
-            <div onClick={onNextLesson} className='items-center p-2 cursor-pointer bg-gray-200 rounded-full flex w-7 h-7 justify-center'>
+            <div onClick={onNextLesson} className='items-center p-2 cursor-pointer bg-gray-200 rounded-full overflow-hidden flex w-7 h-7 justify-center'>
               <ForwardArrowSVG size={13} />
             </div>
           </div>
         </div>
         <div className='w w-full h-80 max-lg:h-60 relative'>
           {isYouTube ? (
-            <div id="youtube-player" className='w-full h-full' />
+            <>
+              <div id="youtube-player" className='w-full h-full' />
+              {isYouTubeLoading && (
+                <div className='absolute top-0 left-0 w-full h-full flex items-center justify-center'>
+                  <div className="loader"></div>
+                </div>
+              )}
+              {playerError && (
+                <div className='absolute top-0 left-0 w-full h-full bg-gray-800 bg-opacity-50 flex items-center justify-center'>
+                  <p className='text-white text-xs'>{playerError}</p>
+                </div>
+              )}
+            </>
           ) : (
             <video
               ref={videoRef}
               src={videoUrl}
               className='w-full h-full object-cover'
               controls // Enable default controls for seeking
-              onEnded={() => setIsPlaying(false)}
+              onEnded={() => {
+                console.log('[DEBUG] Native video ended');
+                setIsPlaying(false);
+              }}
             />
           )}
           {
@@ -256,7 +360,7 @@ const QuizComponent: React.FC<QuizProps> = ({ quizTitle, isLocked, passmark, dur
           <div className='flex justify-between mb-6 items-center'>
             <h1 className='font-bold'>{quizTitle}</h1>
             <div className='flex items-center gap-2'>
-              <div onClick={onPreviousLesson} className='items-center p-2 cursor-pointer bg-gray-200 rounded-full rotate-180 flex w-7 h-7 justify-center'>
+              <div onClick={onPreviousLesson} className='items-center p-2 cursor-pointer bg-gray-200 rounded-full rotate-180 flex w-7 h-7Limits: justify-center'>
                 <ForwardArrowSVG size={13} />
               </div>
               <div onClick={onNextLesson} className='items-center p-2 cursor-pointer bg-gray-200 rounded-full flex w-7 h-7 justify-center'>
@@ -714,7 +818,7 @@ const StartedCoursePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
       <div
-        className='w-11 h-11 items-center justify-center rounded-full hidden max-lg:flex fixed p-3 top-1 left-2 z-999 flex-col gap-1'
+        className='w-11 h-11 items-center justify-center rounded-full hidden max-lg:flex fixed=-lg:flex fixed p-3 top-1 left-2 z-999 flex-col gap-1'
         onClick={() => {
           setIsActive(!isActive);
         }}
