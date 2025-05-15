@@ -247,7 +247,7 @@ const TopicsPage = () => {
         ref={containerRef}
         className="p-5 flex-[4] flex flex-col gap-10 overflow-y-auto h-full"
       >
-        <div className="w-full min-h-[100px] bg-gray-200 rounded-xl">
+        <div className="w-full min-h-[100px] h-[150px] bg-gray-200 rounded-xl">
           {topicBanner ? <img src={topicBanner} alt="topic_banner" className="w-full h-full object-cover rounded-xl" /> : null}
         </div>
         <div className="profile border-b border-b-gray-200 pb-10 flex max-sm:flex-col gap-2">

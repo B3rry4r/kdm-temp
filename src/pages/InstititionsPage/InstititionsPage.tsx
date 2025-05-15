@@ -259,7 +259,7 @@ const InstitutionsPage = () => {
         ) : (
           <div className="flex h-full">
             <div className="p-5 max-md:p-3 flex-[4] flex flex-col gap-10 max-md:gap-6 overflow-y-auto h-full">
-              <div className="w-full min-h-[100px] max-md:min-h-[80px] bg-gray-200 rounded-xl">
+              <div className="w-full min-h-[100px] h-[150px] bg-gray-200 rounded-xl">
               {institutionBanner ? (
                     <img src={institutionBanner} alt={institutionName} className="w-full h-full object-cover" />
                   ) : (
