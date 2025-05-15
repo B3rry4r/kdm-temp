@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
-import google from "../../assets/icons/google.svg";
+import google from "../../assets/icons/google2.svg";
 import apple from "../../assets/icons/apple.svg";
 import {
   EventsSVG,
@@ -128,11 +128,11 @@ const LeftNavBar = () => {
               </a>
             </div>
           </div>
-          <div className="flex mt-3 flex-col mb-10 gap-3">
+          <div className="flex mt-3 w-[90%] flex-col mb-10 gap-3">
             <h2 className="text-sm font-semibold">Download App</h2>
             <a
               href="https://play.google.com/store/apps/details?id=com.esivue.kudi_mata&hl=en&pli=1"
-              className="flex items-center bg-black text-white px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity"
+              className="flex items-center bg-[#68049B] text-white px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity"
             >
               <img src={google} alt="Google Play" className="w-7 h-7 mr-2" />
               <div>
@@ -142,7 +142,7 @@ const LeftNavBar = () => {
             </a>
             <a
               href="https://apps.apple.com/ng/app/kudimata/id1636961343"
-              className="flex items-center bg-black text-white px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity"
+              className="flex items-center bg-[#68049B] text-white px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity"
             >
               <img src={apple} alt="App Store" className="w-6 h-6 mr-2" />
               <div>
