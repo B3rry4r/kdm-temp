@@ -43,14 +43,15 @@ const MyCoursesPage = () => {
       
       const transformedCourses = response.data.map(item => {
         const course = item.course || {};
-        const id = item.course_id || course.id;
+        const id = item.course_id;
         const completion_percent = item.completion_percent || 0;
         const course_status = item.course_status || 'not-started';
+        console.log( 'TEST COURSE TITLE', item.course_title);
         return {
           id: id,
-          course_title: course.course_title || 'Untitled Course',
-          description: course.description || 'No description available',
-          course_image: course.course_image || '',
+          course_title: item.course_title || 'Untitled Course',
+          description: item.description || 'No description available',
+          course_image: item.course_image || '',
           type: course.type || 'Unknown',
           price: course.price,
           org_id: course.org_id,

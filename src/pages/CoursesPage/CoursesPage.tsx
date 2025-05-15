@@ -33,7 +33,7 @@ const CoursesPage = () => {
         const response = await apiClient.get<Course[]>('/courses');
         const courseData = response.data.map(course => ({
           ...course,
-          enrolled: course.enrolled ?? false, // Default to false if enrolled is undefined
+          enrolled: course.enrolled,
         }));
         console.log('Fetched courses:', courseData.map(c => ({ id: c.id, title: c.title, enrolled: c.enrolled })));
         setCourses(courseData);
