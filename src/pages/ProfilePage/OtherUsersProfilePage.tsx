@@ -107,7 +107,7 @@ const OtherUsersProfilePage = () => {
   const [followers, setFollowers] = useState<User[]>([]);
   const [following, setFollowing] = useState<User[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isFollowingLoading, setIsFollowingLoading] = useState(false);
   const [isFollowed, setIsFollowed] = useState(false);
   const [followerCount, setFollowerCount] = useState<number>(0);
@@ -129,9 +129,9 @@ const OtherUsersProfilePage = () => {
       try {
         const response = await apiClient.get(`/profile/${id}`);
         console.log('GET /profile/${id} response:', JSON.stringify(response.data, null, 2));
-        const profileData = response.data.data;
+        const profileData = response.data;
         setProfile(profileData);
-        setIsFollowed(profileData.iam_following);
+        setIsFollowed(profileData.iam_following ? profileData.iam_following : false);
         setFollowerCount(profileData.followers);
       } catch (error: any) {
         console.error('Profile fetch error:', error.response?.data || error.message);
@@ -310,8 +310,13 @@ const OtherUsersProfilePage = () => {
     navigate('/');
   };
 
+
   if (!profile) {
-    return <div className="flex items-center justify-center h-full text-sm font-bold">Profile not found</div>;
+    return (
+      <div className="flex w-full h-full items-center justify-center">
+      <div className="loader"></div>
+    </div>
+    )
   }
 
   return (
@@ -365,7 +370,7 @@ const OtherUsersProfilePage = () => {
                     </div>
                   </div>
                 )}
-                <h2 className="font-bold text-sm">{profile.followers}</h2>
+                <h2 className="font-bold text-sm">{profile.followers || 0}</h2>
                 <p
                   className="text-[10px] cursor-pointer text-[#68049B]"
                   onClick={() => setIsFollowersOpen(!isFollowersOpen)}
@@ -404,7 +409,7 @@ const OtherUsersProfilePage = () => {
                     </div>
                   </div>
                 )}
-                <h2 className="font-bold text-sm">{profile.following}</h2>
+                <h2 className="font-bold text-sm">{profile.following || 0}</h2>
                 <p
                   className="text-[10px] cursor-pointer text-[#68049B]"
                   onClick={() => setFollowingOpen(!isFollowingOpen)}

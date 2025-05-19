@@ -91,7 +91,7 @@ const ProfilePage = () => {
   const [followers, setFollowers] = useState<User[]>([]);
   const [following, setFollowing] = useState<User[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -103,7 +103,7 @@ const ProfilePage = () => {
     const fetchProfile = async () => {
       try {
         const response = await apiClient.get(`/profile/${id}`);
-        setProfile(response.data.data);
+        setProfile(response.data);
       } catch (error: any) {
         setAlertMsg('Could not load your profile. Please try again.');
         setAlertOpen(true);
@@ -285,7 +285,7 @@ const ProfilePage = () => {
                     </div>
                   </div>
                 ) : null}
-                <h2 className="font-bold text-sm">{profile.followers}</h2>
+                <h2 className="font-bold text-sm">{profile.followers || 0}</h2>
                 <p
                   className="text-[10px] cursor-pointer text-[#68049B]"
                   onClick={() => setIsFollowersOpen(!isFollowersOpen)}
@@ -320,7 +320,7 @@ const ProfilePage = () => {
                     </div>
                   </div>
                 ) : null}
-                <h2 className="font-bold text-sm">{profile.following}</h2>
+                <h2 className="font-bold text-sm">{profile.following || 0}</h2>
                 <p
                   className="text-[10px] cursor-pointer text-[#68049B]"
                   onClick={() => setFollowingOpen(!isFollowingOpen)}
@@ -350,12 +350,12 @@ const ProfilePage = () => {
                 image={post.image_urls[0] || null}
                 likes={post.likes_count}
                 comments={post.comments_count}
-                author={`${post.user.firstname} ${post.user.lastname}`}
+                author={`${post?.user?.firstname || 'NULL'} ${post?.user?.lastname || 'NULL'}`}
                 institution={post.topic.name}
                 time={post.updated_at}
                 isCommentScreen={true}
                 isSingleUser={true}
-                profilePicture={post.user.profile_picture}
+                profilePicture={post?.user?.profile_picture || 'NULL'}
               />
             ))
           ) : (

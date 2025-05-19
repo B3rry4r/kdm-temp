@@ -47,16 +47,16 @@ interface SavedPost {
     saved: boolean;
     likes_count: number;
     comments_count: number;
-  };
-  user: {
-    id: number;
-    firstname: string;
-    lastname: string;
-    active_subscription: boolean;
-    profile_picture: string;
-    is_consultant_profile: boolean;
-    is_an_admin: boolean;
-    group_admin_data: any;
+    user: {
+      id: number;
+      firstname: string;
+      lastname: string;
+      active_subscription: boolean;
+      profile_picture: string;
+      is_consultant_profile: boolean;
+      is_an_admin: boolean;
+      group_admin_data: any;
+    };
   };
 }
 

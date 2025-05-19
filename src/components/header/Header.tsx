@@ -286,7 +286,7 @@ const Header = () => {
           className="w-10 h-10 max-lg:w-9 max-lg:h-9 max-md:w-8 max-md:h-8 max-sm:p-1 rounded-md flex items-center justify-center cursor-pointer"
           onClick={toggleMobileSearch}
         >
-          <img src={search} alt="search" className="object-cover" />
+          <img src={search} alt="search" className="object-cover hidden max-sm:block" />
         </div>
           <div
             onClick={() => setIsCreateOpen(!isCreateOpen)}

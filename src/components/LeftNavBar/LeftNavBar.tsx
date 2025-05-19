@@ -69,7 +69,7 @@ const LeftNavBar = () => {
       title: "Speak To An Advisor",
       icon: SpeatToAnAdvisorSVG,
       isMailto: true,
-      link: "admin@kudimata.com",
+      link: "mailto:admin@kudimata.com",
     },
     { title: "Events", icon: EventsSVG, link: "/events" },
   ];

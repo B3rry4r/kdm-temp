@@ -21,16 +21,16 @@ interface SavedPost {
     saved: boolean;
     likes_count: number;
     comments_count: number;
-  };
-  user: {
-    id: number;
-    firstname: string;
-    lastname: string;
-    active_subscription: boolean;
-    profile_picture: string;
-    is_consultant_profile: boolean;
-    is_an_admin: boolean;
-    group_admin_data: any;
+    user: {
+      id: number;
+      firstname: string;
+      lastname: string;
+      active_subscription: boolean;
+      profile_picture: string;
+      is_consultant_profile: boolean;
+      is_an_admin: boolean;
+      group_admin_data: any;
+    };
   };
 }
 
@@ -127,10 +127,11 @@ const SavedPosts = () => {
               likes={savedPost.post.likes_count}
               comments={savedPost.post.comments_count}
               shares={0}
-              author={`${savedPost.user.firstname} ${savedPost.user.lastname}`}
+              author={`${savedPost.post.user?.firstname || null} ${savedPost.post.user?.lastname || null}`}
               institution="SME MATTER"
               time={formatTime(savedPost.post.updated_at)}
-              profilePicture={savedPost.user.profile_picture || null}
+              profilePicture={savedPost.post.user?.profile_picture || null}
+              userId={savedPost.post.user.id.toString()}
             />
           ))
         )}
