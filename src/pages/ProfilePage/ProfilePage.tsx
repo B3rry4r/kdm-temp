@@ -120,7 +120,7 @@ const ProfilePage = () => {
       if (!id || !hasMore) return;
 
       try {
-        const response = await apiClient.get<PaginatedPostsResponse>('/posts', {
+        const response = await apiClient.get<PaginatedPostsResponse>(`/posts/user/${id}`, {
           params: { page, perPage: 10 },
         });
         const userPosts = response.data.data.filter((post: Post) => post.user_id.toString() === id.toString());

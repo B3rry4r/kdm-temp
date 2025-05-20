@@ -190,7 +190,7 @@ const OtherUsersProfilePage = () => {
 
       try {
         setLoading(true);
-        const response = await apiClient.get<PaginatedPostsResponse>('/posts', {
+        const response = await apiClient.get<PaginatedPostsResponse>(`/posts/user/${id}`, {
           params: { page, perPage: 10 },
         });
         console.log('GET /posts response:', JSON.stringify(response.data, null, 2));

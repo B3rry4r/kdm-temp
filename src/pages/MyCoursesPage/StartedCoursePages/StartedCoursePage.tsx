@@ -852,7 +852,7 @@ const StartedCoursePage: React.FC = () => {
                 isNavStyle
                 isUserOwned
                 dropDownItems={section.dropDownItems}
-                onLessonClick={idx => setActiveLesson({ sectionId: section.id, lessonIndex: idx, isQuiz: false })}
+                // onLessonClick={idx => setActiveLesson({ sectionId: section.id, lessonIndex: idx, isQuiz: false })}
               />
             ))}
             {course.quiz_settings && quizItem && (
