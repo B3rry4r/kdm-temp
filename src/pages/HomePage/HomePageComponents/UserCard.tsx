@@ -38,14 +38,14 @@ const UserCard: React.FC<UserCardProps> = ({ id, name, bio, iam_following, profi
         <div className="w-8 h-8 bg-gray-300 overflow-hidden rounded-full">
           <img src={profile_picture || 'no string'} alt="" className='w-full h-full object-cover' />
         </div>
-        <div className="flex flex-col gap-[0px]">
+        <div className="flex w-[130px] flex-col gap-[0px]">
           <p className="text-xs font-bold">{name}</p>
-          <p className="text-[10px]">{bio || 'No bio'}</p>
+          <p className="text-[10px] overflow-hidden ellipsis whitespace-nowrap">{bio || 'No bio'}</p>
         </div>
       </div>
       <p
         onClick={handleFollowToggle}
-        className="py-1 bg-[#FFD30F] px-2 text-xs cursor-pointer rounded font-bold disabled:opacity-50"
+        className="py-1 bg-[#FFD30F] px-2 text-xs min-w-[60px] cursor-pointer rounded font-bold disabled:opacity-50"
         style={{ backgroundColor: isFollowing ? '#68049B' : '#FFD30F', color: isFollowing ? '#FFFFFF' : '#000000' }}
       >
         {loading ? '...' : isFollowing ? 'Unfollow' : 'Follow'}

@@ -65,6 +65,7 @@ interface AuthContextType {
   apiClient: AxiosInstance;
   apiClient2: AxiosInstance;
   apiClient3: AxiosInstance;
+  apiClient4: AxiosInstance;
 }
 
 // Create the AuthContext
@@ -85,6 +86,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Create Axios instance for API requests
   const apiClient = axios.create({
     baseURL: 'https://staging.kudimata.com/api/v2',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  // Create Axios instance for API requests
+  const apiClient4 = axios.create({
+    baseURL: 'https://staging.kudimata.com/v1',
     headers: {
       'Content-Type': 'application/json',
     },
@@ -290,6 +298,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     apiClient,
     apiClient2,
     apiClient3,
+    apiClient4,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
