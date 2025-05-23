@@ -285,7 +285,7 @@ const ProfilePage = () => {
                     </div>
                   </div>
                 ) : null}
-                <h2 className="font-bold text-sm">{profile.followers || 0}</h2>
+                <h2 className="font-bold text-sm">{profile.followers.toString()}</h2>
                 <p
                   className="text-[10px] cursor-pointer text-[#68049B]"
                   onClick={() => setIsFollowersOpen(!isFollowersOpen)}
@@ -320,7 +320,7 @@ const ProfilePage = () => {
                     </div>
                   </div>
                 ) : null}
-                <h2 className="font-bold text-sm">{profile.following || 0}</h2>
+                <h2 className="font-bold text-sm">{profile.following.toString()}</h2>
                 <p
                   className="text-[10px] cursor-pointer text-[#68049B]"
                   onClick={() => setFollowingOpen(!isFollowingOpen)}
