@@ -1,26 +1,24 @@
-// PostUpdateContext.tsx
 import React, { createContext, useContext, useState } from 'react';
 
 const PostUpdateContext = createContext<{
-  shouldRefresh: boolean;
+  refreshKey: number;
   triggerRefresh: () => void;
 }>({
-  shouldRefresh: false,
+  refreshKey: 0,
   triggerRefresh: () => {},
 });
 
 export const usePostUpdate = () => useContext(PostUpdateContext);
 
 export const PostUpdateProvider = ({ children }: { children: React.ReactNode }) => {
-  const [shouldRefresh, setShouldRefresh] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const triggerRefresh = () => {
-    setShouldRefresh(true);
-    setTimeout(() => setShouldRefresh(false), 100); // Reset after a short delay
+    setRefreshKey((prev) => prev + 1); // Increment to trigger refresh
   };
 
   return (
-    <PostUpdateContext.Provider value={{ shouldRefresh, triggerRefresh }}>
+    <PostUpdateContext.Provider value={{ refreshKey, triggerRefresh }}>
       {children}
     </PostUpdateContext.Provider>
   );

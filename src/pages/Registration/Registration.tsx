@@ -544,9 +544,23 @@ const Registration: React.FC<Props> = () => {
             />
             <label htmlFor="agree" className="ml-2 text-[10px]">
               By continuing you agree to Kudimata's{' '}
-              <span className="text-[#68049B] cursor-pointer">Privacy Policy</span>{' '}
+              <a
+                href="https://www.kudimata.app/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#68049B] cursor-pointer"
+              >
+                Privacy Policy
+              </a>{' '}
               and{' '}
-              <span className="text-[#68049B] cursor-pointer">User Agreement</span>.
+              <a
+                href="https://www.kudimata.app/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#68049B] cursor-pointer"
+              >
+                User Agreement
+              </a>.
             </label>
             {errors.agreed && <span className="text-xs text-red-500">{errors.agreed}</span>}
           </div>

@@ -66,8 +66,7 @@ const HomePage = () => {
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { searchQuery } = useSearch();
-
-  const { shouldRefresh } = usePostUpdate();
+  const { refreshKey } = usePostUpdate();
 
   // Helper to check if user exists in localStorage
   const isUserInLocalStorage = (): boolean => {
@@ -90,25 +89,16 @@ const HomePage = () => {
     fetchAds();
   }, [apiClient]);
 
-  // Watch for refresh trigger
-  useEffect(() => {
-    if (shouldRefresh) {
-      setContent([]);
-      setPage(1);
-      setHasMore(true);
-      fetchPosts(1);
-    }
-  }, [shouldRefresh]);
-
-  const fetchPosts = async (pageNum: number) => {
-    if (isLoading || !hasMore) return;
+  // Fetch posts
+  const fetchPosts = async (pageNum: number, isRefresh: boolean = false) => {
+    if (isLoading || (!isRefresh && !hasMore)) return;
     setIsLoading(true);
     setError(null);
 
     try {
       // Determine endpoint based on authentication and localStorage
       const endpoint = isAuthenticated && isUserInLocalStorage() ? '/posts' : '/posts/public';
-      console.log(`Fetching posts from ${endpoint} (page: ${pageNum})`);
+      console.log(`Fetching posts from ${endpoint} (page: ${pageNum}, isRefresh: ${isRefresh})`);
 
       const response = await apiClient.get<PaginatedPostsResponse>(endpoint, {
         params: { page: pageNum, perPage: 10 },
@@ -137,7 +127,7 @@ const HomePage = () => {
         },
       }));
 
-      setContent((prevContent) => [...prevContent, ...posts]);
+      setContent((prevContent) => (isRefresh ? posts : [...prevContent, ...posts]));
       setPage(pageNum + 1);
       setHasMore(response.data.current_page < response.data.last_page);
     } catch (err: any) {
@@ -148,10 +138,20 @@ const HomePage = () => {
     }
   };
 
+  // Initial fetch
   useEffect(() => {
-    fetchPosts(1); // Initial fetch
+    fetchPosts(1);
   }, []);
 
+  // Refresh on refreshKey change
+  useEffect(() => {
+    setIsLoading(true); // Show loader during refresh
+    setPage(1);
+    setHasMore(true);
+    fetchPosts(1, true); // Fetch page 1, replace content
+  }, [refreshKey]);
+
+  // Infinite scroll
   useEffect(() => {
     const handleScroll = () => {
       if (!containerRef.current || isLoading || !hasMore) return;
@@ -181,32 +181,27 @@ const HomePage = () => {
     if (!searchQuery.trim() || !content || content.length === 0) {
       return content;
     }
-    
-    return content.filter(post => {
+
+    return content.filter((post) => {
       const content = post.data.description?.toLowerCase() || '';
       const authorName = post.data.author?.toLowerCase() || '';
       const topicName = post.data.institution?.toLowerCase() || '';
-      
+
       const query = searchQuery.toLowerCase();
-      
-      return content.includes(query) || 
-             authorName.includes(query) || 
-             topicName.includes(query);
+
+      return content.includes(query) || authorName.includes(query) || topicName.includes(query);
     });
   }, [content, searchQuery]);
 
-  // Fix the duplicate post rendering issue
   return (
     <div className="h-full">
       <div className="flex h-full w-full">
-        <div 
+        <div
           ref={containerRef}
           className="flex flex-col gap-5 overflow-y-auto p-10 max-xl:p-8 max-lg:p-6 max-md:p-4 flex-4 max-sm:w-full"
         >
-          {error && (
-            <div className="text-red-500 text-center">{error}</div>
-          )}
-          
+          {error && <div className="text-red-500 text-center">{error}</div>}
+
           {searchQuery && (
             <div className="my-3">
               <p className="text-sm">
@@ -214,39 +209,37 @@ const HomePage = () => {
               </p>
             </div>
           )}
-          
-          {!isLoading ? (
-            filteredPosts && filteredPosts.length > 0 ? (
-              filteredPosts.map((item, index) => (
-                <React.Fragment key={index}>
-                  <ContentCard {...item.data} />
-                  {(index + 1) % 5 === 0 && index < filteredPosts.length - 1 && (
-                    // Randomly select one ad to display every 5 posts
-                    (() => {
-                      const selectedAd = getRandomAd(ads);
-                      return selectedAd ? <Banner ad={selectedAd} /> : null;
-                    })()
-                  )}
-                </React.Fragment>
-              ))
-            ) : (
-              <div className="w-full text-center py-8">
-                <p className="text-gray-500">
-                  {searchQuery ? "No posts found matching your search." : "No posts available."}
-                </p>
-              </div>
-            )
-          ) : (
+
+          {isLoading ? (
             <div className="w-full h-full flex items-center justify-center">
               <div className="loader"></div>
             </div>
+          ) : filteredPosts && filteredPosts.length > 0 ? (
+            filteredPosts.map((item, index) => (
+              <React.Fragment key={index}>
+                <ContentCard {...item.data} />
+                {(index + 1) % 5 === 0 && index < filteredPosts.length - 1 && (
+                  // Randomly select one ad to display every 5 posts
+                  (() => {
+                    const selectedAd = getRandomAd(ads);
+                    return selectedAd ? <Banner ad={selectedAd} /> : null;
+                  })()
+                )}
+              </React.Fragment>
+            ))
+          ) : (
+            <div className="w-full text-center py-8">
+              <p className="text-gray-500">
+                {searchQuery ? "No posts found matching your search." : "No posts available."}
+              </p>
+            </div>
           )}
-          
+
           {!hasMore && filteredPosts.length > 0 && (
             <div className="text-center text-xs font-bold">No more posts to load.</div>
           )}
         </div>
-        
+
         <div className="flex-[3] max-md:flex-[2] max-sm:hidden max-lg:hidden overflow-y-auto h-full">
           <RightSideBar />
         </div>
