@@ -63,6 +63,7 @@ const RightSideBar: React.FC = () => {
         setLoadingEvents(true);
         const response = await apiClient2.get<Event[]>('/events');
         setEvents(response.data);
+        console.log(response.data);
       } catch (err: any) {
         setError('Failed to load events');
         console.error(err);
@@ -150,7 +151,7 @@ const RightSideBar: React.FC = () => {
       </div>
 
       {/* First Events Carousel */}
-      <div className="w-full min-h-[350px] max-lg:min-h-[300px] max-xl:min-h-[320px] flex flex-col items-center justify-center">
+      <div className="w-full min-h-[400px] flex flex-col items-center justify-center">
         {error && <p className="text-red-500">{error}</p>}
         {loadingEvents ? (
           <p className="text-gray-500">Loading events...</p>
@@ -160,7 +161,7 @@ const RightSideBar: React.FC = () => {
       </div>
 
       {/* Second Events Carousel */}
-      <div className="w-full min-h-[350px] max-lg:min-h-[300px] max-xl:min-h-[320px] flex flex-col items-center justify-center">
+      <div className="w-full min-h-[400px] flex flex-col items-center justify-center">
         {error && <p className="text-red-500">{error}</p>}
         {loadingEvents ? (
           <p className="text-gray-500">Loading events...</p>
