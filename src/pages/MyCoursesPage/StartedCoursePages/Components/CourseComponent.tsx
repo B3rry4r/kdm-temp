@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Pause } from 'lucide-react';
-import { ForwardArrowSVG } from '../../../../assets/icons/icons'; // Ensure this path is correct
+import { ForwardArrowSVG } from '../../../../assets/icons/icons';
 
-// Ensure window.YT type definition if you're using TypeScript
 declare global {
   interface Window {
     YT: any;
-    onYouTubeIframeAPIReady: () => void;
+    onYouTubeIframeAPIReady?: () => void;
   }
 }
 
@@ -19,7 +18,7 @@ const getYouTubeVideoId = (url: string): string | null => {
 interface CourseProps {
   title: string;
   description: string;
-  videoUrl: string; // This prop will now come from StartedCoursePage
+  videoUrl: string;
   onComplete: () => void;
   onPreviousLesson: () => void;
   onNextLesson: () => void;
@@ -30,27 +29,12 @@ const CourseComponent: React.FC<CourseProps> = React.memo(({ title, description,
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<any>(null);
   const youtubePlayerDivRef = useRef<HTMLDivElement>(null);
-
   const [isYouTube, setIsYouTube] = useState(false);
   const [isYouTubeLoading, setIsYouTubeLoading] = useState(false);
   const [playerError, setPlayerError] = useState<string | null>(null);
+  const youtubeVideoId = getYouTubeVideoId(videoUrl);
+  const isMounted = useRef(true);
 
-  const youtubeVideoId = getYouTubeVideoId(videoUrl); // Use the actual prop
-
-  const currentYouTubeVideoIdRef = useRef<string | null>(null);
-
-  // --- DEBUGGING: Initial render and prop changes ---
-  console.log(`[RENDER] CourseComponent rendered. videoUrl: ${videoUrl}, youtubeVideoId: ${youtubeVideoId}`);
-  console.log(`[RENDER] isYouTube: ${isYouTube}, isYouTubeLoading: ${isYouTubeLoading}, playerError: ${playerError}`);
-  // This useEffect will show if props passed to CourseComponent are actually changing.
-  useEffect(() => {
-    console.log('[CourseComponent] Props changed detection:', { title, description, videoUrl });
-  }, [title, description, videoUrl]);
-  // --- END DEBUGGING ---
-
-
-  // Use a ref to track if the component is mounted, to avoid state updates on unmounted component
-  const isMounted = useRef(false);
   useEffect(() => {
     isMounted.current = true;
     return () => {
@@ -58,231 +42,168 @@ const CourseComponent: React.FC<CourseProps> = React.memo(({ title, description,
     };
   }, []);
 
-
-  // initializeOrUpdatePlayer is wrapped in useCallback to ensure stability
-  const initializeOrUpdatePlayer = useCallback(() => {
-    console.log('[DEBUG initializeOrUpdatePlayer] Function called.');
-    const videoIdToLoad = currentYouTubeVideoIdRef.current; // Use the ref value
-
-    if (!videoIdToLoad) {
-      console.log('[DEBUG initializeOrUpdatePlayer] No YouTube video ID available. Exiting.');
+  const initializePlayer = useCallback(() => {
+    if (!isMounted.current) {
+      console.log('Component unmounted, skipping player initialization');
+      return;
+    }
+    if (!youtubeVideoId) {
+      console.log('No YouTube video ID, clearing player');
+      setIsYouTubeLoading(false);
       if (playerRef.current) {
         playerRef.current.destroy();
         playerRef.current = null;
       }
-      if (isMounted.current) setIsYouTubeLoading(false);
       return;
     }
 
-    if (!(window as any).YT || !(window as any).YT.Player) {
-      console.warn('[WARN initializeOrUpdatePlayer] YouTube API not yet available. Retrying via onYouTubeIframeAPIReady.');
+    if (!window.YT || !window.YT.Player) {
+      console.log('YouTube API not loaded');
       return;
     }
 
     const playerDiv = youtubePlayerDivRef.current;
     if (!playerDiv) {
-      console.error('[ERROR initializeOrUpdatePlayer] YouTube player div ref is null. Element not in DOM?');
-      if (isMounted.current) setPlayerError('YouTube player container not found (DOM issue).');
-      if (isMounted.current) setIsYouTubeLoading(false);
-      return;
-    }
-    console.log(`[DEBUG initializeOrUpdatePlayer] Found player div ref:`, playerDiv);
-
-    if (playerRef.current && playerRef.current.getVideoData()?.video_id === videoIdToLoad) {
-      console.log(`[DEBUG initializeOrUpdatePlayer] Player already initialized for current video ${videoIdToLoad}.`);
-      if (isMounted.current) setIsYouTubeLoading(false);
+      console.error('YouTube player container not found');
+      setPlayerError('YouTube player container not found.');
+      setIsYouTubeLoading(false);
       return;
     }
 
-    if (playerRef.current) {
-      console.log('[DEBUG initializeOrUpdatePlayer] Destroying existing YouTube player instance.');
-      playerRef.current.destroy();
-      playerRef.current = null;
-    }
-
-    console.log(`[DEBUG initializeOrUpdatePlayer] Initializing new YouTube player for video ID: ${videoIdToLoad}`);
-    if (isMounted.current) setIsYouTubeLoading(true);
-
-    playerRef.current = new (window as any).YT.Player(playerDiv, {
+    console.log('Creating YouTube player for video ID:', youtubeVideoId);
+    setIsYouTubeLoading(true);
+    playerRef.current = new window.YT.Player(playerDiv, {
       height: '100%',
       width: '100%',
-      videoId: videoIdToLoad,
+      videoId: youtubeVideoId,
       playerVars: {
         controls: 1,
         modestbranding: 1,
         origin: window.location.origin,
-        autoplay: 1,
       },
       events: {
         onReady: () => {
-          console.log('[DEBUG initializeOrUpdatePlayer] YouTube player is ready!');
           if (isMounted.current) {
+            console.log('YouTube player ready');
             setPlayerError(null);
             setIsYouTubeLoading(false);
-            setIsPlaying(true); // Assuming autoplay
+            setIsPlaying(true);
           }
         },
         onStateChange: (event: any) => {
-          const state = event.data;
-          console.log(`[DEBUG initializeOrUpdatePlayer] Player state changed: ${state}`);
           if (isMounted.current) {
-            setIsPlaying(state === (window as any).YT.PlayerState.PLAYING);
+            console.log('YouTube player state:', event.data);
+            setIsPlaying(event.data === window.YT.PlayerState.PLAYING);
           }
         },
         onError: (event: any) => {
-          const errorCode = event.data;
-          console.error(`[ERROR initializeOrUpdatePlayer] YouTube player error: Code ${errorCode}`);
           if (isMounted.current) {
-            setPlayerError(`Youtubeer error: Code ${errorCode}`);
+            console.error('YouTube player error:', event.data);
+            setPlayerError(`YouTube error: Code ${event.data}`);
             setIsYouTubeLoading(false);
           }
         },
       },
     });
-  }, []); // useCallback dependencies: empty if no external state/props are directly used in the function body
+  }, [youtubeVideoId]);
 
-
-  // Effect to load YouTube IFrame Player API script
   useEffect(() => {
-    console.log('[EFFECT 1] Script loading effect running. Current youtubeVideoId:', youtubeVideoId);
+    console.log('useEffect for videoUrl:', videoUrl);
+    setIsYouTube(!!youtubeVideoId);
+    setPlayerError(null);
+    setIsYouTubeLoading(!!youtubeVideoId);
 
-    if (youtubeVideoId && !((window as any).YT && (window as any).YT.Player)) {
-      if (isMounted.current) setIsYouTubeLoading(true);
-      console.log('[DEBUG EFFECT 1] Attempting to load YouTube IFrame API script...');
-      const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api'; // Corrected YouTube API URL
-      tag.onerror = () => {
-        console.error('[ERROR EFFECT 1] Failed to load YouTube IFrame API script');
-        if (isMounted.current) {
-          setPlayerError('Failed to load YouTube API script');
+    if (youtubeVideoId) {
+      console.log('Loading YouTube video ID:', youtubeVideoId);
+      if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+        console.log('Injecting YouTube API script');
+        const tag = document.createElement('script');
+        tag.src = 'https://www.youtube.com/iframe_api';
+        tag.onerror = () => {
+          if (isMounted.current) {
+            console.error('Failed to load YouTube API script');
+            setPlayerError('Failed to load YouTube API');
+            setIsYouTubeLoading(false);
+          }
+        };
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        if (firstScriptTag?.parentNode) {
+          firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        }
+      }
+
+      window.onYouTubeIframeAPIReady = () => {
+        console.log('onYouTubeIframeAPIReady triggered');
+        initializePlayer();
+      };
+
+      const timeout = setTimeout(() => {
+        if (isMounted.current && isYouTubeLoading && !window.YT?.Player) {
+          console.error('YouTube API timeout after 10s');
+          setPlayerError('YouTube API failed to load');
           setIsYouTubeLoading(false);
         }
-      };
-      tag.onload = () => {
-        console.log('[DEBUG EFFECT 1] YouTube IFrame API script loaded successfully');
-        // Check if we have a video ID AND the div AND the API is ready *immediately* after script load
-        if (youtubeVideoId && youtubePlayerDivRef.current && (window as any).YT && (window as any).YT.Player) {
-          console.log('[DEBUG EFFECT 1] API loaded, immediately calling initializeOrUpdatePlayer for current video.');
-          initializeOrUpdatePlayer(); // Initialize *immediately* after script load
+      }, 10000);
+
+      return () => {
+        clearTimeout(timeout);
+        if (window.onYouTubeIframeAPIReady === initializePlayer) {
+          window.onYouTubeIframeAPIReady = undefined;
         }
       };
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      if (firstScriptTag && firstScriptTag.parentNode) {
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-      } else {
-        console.error('[ERROR EFFECT 1] No script tags found to insert YouTube API');
-        if (isMounted.current) {
-          setPlayerError('Cannot load YouTube API: No script tags found');
-          setIsYouTubeLoading(false);
-        }
-      }
-    } else if (!youtubeVideoId) {
-      if (isMounted.current) setIsYouTubeLoading(false);
-      console.log('[DEBUG EFFECT 1] Not a YouTube video, skipping API script load.');
     } else {
-      console.log('[DEBUG EFFECT 1] YouTube API already loaded, skipping script insertion.');
-      // If API is already loaded and it's a YouTube video, attempt to init player.
-      if (youtubeVideoId && youtubePlayerDivRef.current) {
-        initializeOrUpdatePlayer();
-      }
-    }
-  }, [youtubeVideoId, initializeOrUpdatePlayer]); // youtubeVideoId added as dependency
-
-
-  // This effect handles the YouTube player lifecycle based on videoUrl changes
-  useEffect(() => {
-    console.log('[EFFECT 2] Player lifecycle effect running. Current videoUrl:', videoUrl);
-    
-    // Set isYouTube based on the current prop
-    if (isMounted.current) setIsYouTube(!!youtubeVideoId);
-    if (isMounted.current) setPlayerError(null); // Clear errors on video URL change
-    currentYouTubeVideoIdRef.current = youtubeVideoId; // Keep ref updated with current ID
-
-    // *Crucially*, check if the API is loaded AND the div ref exists *before* trying to initialize
-    if (youtubeVideoId) { // Only if we have a valid video ID
-      console.log('[DEBUG EFFECT 2] It is a YouTube video. Checking API and div ref.');
-      if ((window as any).YT && (window as any).YT.Player && youtubePlayerDivRef.current) {
-        // *IMPORTANT*: Check ALL conditions: API loaded, div ref exists
-        console.log('[DEBUG EFFECT 2] API loaded and div ref exists. Calling initializeOrUpdatePlayer directly from EFFECT 2.');
-        initializeOrUpdatePlayer(); // Initialize *immediately*
-      } else {
-        // If API not loaded or div not ready, set global callback
-        console.log('[DEBUG EFFECT 2] API not loaded or div ref not ready. Setting global onYouTubeIframeAPIReady.');
-        (window as any).onYouTubeIframeAPIReady = initializeOrUpdatePlayer;
-      }
-    } else {
-      console.log('[DEBUG EFFECT 2] Not a YouTube video. Cleaning up YouTube player if exists.');
+      console.log('Not a YouTube video');
+      setIsYouTubeLoading(false);
+      setIsPlaying(false);
       if (playerRef.current) {
         playerRef.current.destroy();
         playerRef.current = null;
       }
-      if (isMounted.current) {
-        setIsYouTubeLoading(false);
-        setIsPlaying(false);
-      }
     }
 
     return () => {
-      console.log('[DEBUG EFFECT 2] Cleanup function running for videoUrl:', videoUrl);
+      console.log('Cleaning up YouTube player');
       if (playerRef.current) {
         try {
-          // Check if player is not already destroyed
-          if (typeof playerRef.current.destroy === 'function') {
-            playerRef.current.destroy();
-            console.log('[DEBUG EFFECT 2] YouTube player destroyed during cleanup.');
-          }
-        } catch (err: any) {
-          console.error('[ERROR EFFECT 2] Error destroying YouTube player in cleanup:', err.message);
-        } finally {
-          playerRef.current = null;
+          playerRef.current.destroy();
+        } catch (err) {
+          console.error('Error destroying player:', err);
         }
+        playerRef.current = null;
       }
-      // Reset global callback if it's currently ours
-      // Only remove if it's *our* function to avoid clashing with other potential players
-      if ((window as any).onYouTubeIframeAPIReady === initializeOrUpdatePlayer) {
-        console.log('[DEBUG EFFECT 2] Removing global onYouTubeIframeAPIReady callback.');
-        delete (window as any).onYouTubeIframeAPIReady;
-      }
-      // Also ensure isMounted is false if unmounting completely
-      isMounted.current = false;
     };
-  }, [youtubeVideoId, initializeOrUpdatePlayer, videoUrl]); // Dependencies: youtubeVideoId, initializeOrUpdatePlayer
+  }, [youtubeVideoId, initializePlayer]);
 
   const togglePlayPause = () => {
     if (isYouTube && playerRef.current) {
       try {
-        if (typeof playerRef.current.getPlayerState !== 'function') {
-          console.error('[ERROR] YouTube player methods not available. Player might not be fully initialized.');
-          setPlayerError('YouTube player not ready.');
-          return;
-        }
-        const currentState = playerRef.current.getPlayerState();
-        console.log(`[DEBUG] Toggling play/pause. Current state: ${currentState}`);
-        if (currentState === (window as any).YT.PlayerState.PLAYING) {
+        const state = playerRef.current.getPlayerState();
+        console.log('Toggling YouTube player, state:', state);
+        if (state === window.YT.PlayerState.PLAYING) {
           playerRef.current.pauseVideo();
         } else {
           playerRef.current.playVideo();
         }
-      } catch (err: any) {
-        console.error('[ERROR] Error toggling YouTube video playback:', err.message);
+      } catch (err) {
+        console.error('Error toggling YouTube:', err);
         setPlayerError('Error playing YouTube video');
       }
     } else if (videoRef.current) {
       try {
-        console.log('[DEBUG] Toggling native video player');
+        console.log('Toggling HTML5 video, isPlaying:', isPlaying);
         if (isPlaying) {
           videoRef.current.pause();
         } else {
           videoRef.current.play();
         }
         setIsPlaying(!isPlaying);
-      } catch (err: any) {
-        console.error('[ERROR] Error toggling native video playback:', err.message);
+      } catch (err) {
+        console.error('Error toggling HTML5:', err);
         setPlayerError('Error playing video');
       }
     } else {
-      console.error('[ERROR] No video player available');
-      setPlayerError('No video player available');
+      console.error('No player available');
+      setPlayerError('No video player');
     }
   };
 
@@ -299,15 +220,15 @@ const CourseComponent: React.FC<CourseProps> = React.memo(({ title, description,
             <p className='text-xs text-gray-700 mt-2'>{description}</p>
           </div>
           <div className='flex items-center gap-2'>
-            <div onClick={onPreviousLesson} className='items-center p-2 cursor-pointer bg-gray-200 rounded-full rotate-180 overflow-hidden flex w-7 h-7 justify-center'>
+            <div onClick={onPreviousLesson} className='items-center p-2 cursor-pointer bg-gray-200 rounded-full rotate-180 flex w-7 h-7 justify-center'>
               <ForwardArrowSVG size={13} />
             </div>
-            <div onClick={onNextLesson} className='items-center p-2 cursor-pointer bg-gray-200 rounded-full overflow-hidden flex w-7 h-7 justify-center'>
+            <div onClick={onNextLesson} className='items-center p-2 cursor-pointer bg-gray-200 rounded-full flex w-7 h-7 justify-center'>
               <ForwardArrowSVG size={13} />
             </div>
           </div>
         </div>
-        <div className='w w-full h-80 max-lg:h-60 relative'>
+        <div className='w-full h-80 max-lg:h-60 relative'>
           {isYouTube ? (
             <>
               <div ref={youtubePlayerDivRef} id="youtube-player" className='w-full h-full' />
@@ -328,10 +249,7 @@ const CourseComponent: React.FC<CourseProps> = React.memo(({ title, description,
               src={videoUrl}
               className='w-full h-full object-cover'
               controls
-              onEnded={() => {
-                console.log('[DEBUG] Native video ended');
-                setIsPlaying(false);
-              }}
+              onEnded={() => setIsPlaying(false)}
             />
           )}
           {!isYouTube && (
@@ -340,11 +258,7 @@ const CourseComponent: React.FC<CourseProps> = React.memo(({ title, description,
               className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[#68049B] rounded-full p-2 opacity-10 hover:opacity-100 transition-opacity duration-200'
               style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              {isPlaying ? (
-                <Pause size={18} color='white' />
-              ) : (
-                <Play size={18} color='white' />
-              )}
+              {isPlaying ? <Pause size={18} color='white' /> : <Play size={18} color='white' />}
             </button>
           )}
         </div>

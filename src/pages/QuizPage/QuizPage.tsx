@@ -29,7 +29,7 @@ interface QuizSettings {
   id: number;
   course_id: number;
   passmark: number;
-  duration: number;
+  duration: number; // Duration in seconds
 }
 
 interface Option {
@@ -94,12 +94,9 @@ const QuizPage: React.FC = () => {
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMsg, setAlertMsg] = useState('');
   const [alertSeverity, setAlertSeverity] = useState<'success' | 'error'>('success');
-  
-  // Add timer state
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [timerActive, setTimerActive] = useState(false);
 
-  // Convert time remaining to minutes and seconds
   const formatTime = useCallback((milliseconds: number) => {
     const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
     const minutes = Math.floor(totalSeconds / 60);
@@ -107,19 +104,17 @@ const QuizPage: React.FC = () => {
     return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
   }, []);
 
-  // Submit quiz function (extracted to be reusable)
   const submitQuiz = useCallback(async (isTimeout: boolean = false) => {
     if (!courseId) return;
-    console.log("Submitting quiz...");
-    console.log("Current answers state (questionId: selectedOptionId):", answers);
+    console.log("Submitting quiz, isTimeout:", isTimeout);
+    console.log("Answers:", answers);
 
-    // Calculate score based on current state
     let correctCount = 0;
     let incorrectCount = 0;
 
     questions.forEach((q) => {
-      const selectedOptionId = answers[q.id]; // Already holds the option ID or null
-      const correctAnswerOptionId = q.correctAnswerOptionId; // Get correct answer ID from question data
+      const selectedOptionId = answers[q.id];
+      const correctAnswerOptionId = q.correctAnswerOptionId;
 
       if (selectedOptionId !== null && selectedOptionId === correctAnswerOptionId) {
         correctCount++;
@@ -131,34 +126,29 @@ const QuizPage: React.FC = () => {
     const totalQuestions = questions.length;
     const score = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
 
-    console.log(`Calculated Score: ${score}%, Correct: ${correctCount}, Incorrect: ${incorrectCount}`);
+    console.log(`Score: ${score}%, Correct: ${correctCount}, Incorrect: ${incorrectCount}`);
 
     try {
-      // Submit the calculated score to the backend
       await apiClient.post(`/course/quiz/submit`, {
         course_id: parseInt(courseId),
-        score: score,
+        score,
         correct: correctCount,
         incorrect: incorrectCount,
-        timeout: isTimeout, // Send timeout status
+        timeout: isTimeout,
       });
-      console.log("Quiz results submitted successfully via API.");
+      console.log("Quiz submitted successfully");
 
-      // Store the final answers state in localStorage
-      const finalAnswersToStore = answers; // The state already holds { questionId: selectedOptionId }
       try {
-        localStorage.setItem(`quiz-final-answers-${courseId}`, JSON.stringify(finalAnswersToStore));
-        console.log(`Stored final answers in localStorage (quiz-final-answers-${courseId}):`, finalAnswersToStore);
+        localStorage.setItem(`quiz-final-answers-${courseId}`, JSON.stringify(answers));
+        console.log(`Stored answers in localStorage: quiz-final-answers-${courseId}`);
       } catch (error) {
-        console.error("Error storing final answers in localStorage:", error);
+        console.error("Error storing answers in localStorage:", error);
       }
 
-      // Navigate to results page WITHOUT passing state
       navigate(`/quiz-results/${courseId}`);
-
     } catch (error: any) {
-      console.error("Error submitting quiz results:", error.response?.data || error.message);
-      setAlertMsg(error.response?.data?.message || 'Failed to submit quiz. Please try again.');
+      console.error("Error submitting quiz:", error.response?.data || error.message);
+      setAlertMsg(error.response?.data?.message || 'Failed to submit quiz.');
       setAlertSeverity('error');
       setAlertOpen(true);
     }
@@ -179,7 +169,7 @@ const QuizPage: React.FC = () => {
         const fetchedSettings: QuizSettings = settingsResponse.data;
 
         console.log("Fetched Quiz Settings:", fetchedSettings);
-        console.log("Raw duration from API:", fetchedSettings.duration);
+        console.log("Duration (seconds):", fetchedSettings.duration);
 
         setQuizSettings(fetchedSettings);
 
@@ -188,9 +178,7 @@ const QuizPage: React.FC = () => {
             id: opt.id,
             text: opt.answer,
           }));
-          
           const correctAnswerOptionId = q.correct_answer?.answer_id || 0;
-
           return {
             id: q.id.toString(),
             text: q.question,
@@ -201,7 +189,7 @@ const QuizPage: React.FC = () => {
 
         setQuestions(formattedQuestions);
       } catch (err: any) {
-        console.error('Error fetching quiz data:', err.response?.data || err.message);
+        console.error('Error fetching quiz:', err.response?.data || err.message);
         setError('Failed to load quiz');
       } finally {
         setLoading(false);
@@ -211,40 +199,45 @@ const QuizPage: React.FC = () => {
     fetchQuizData();
   }, [courseId, apiClient]);
 
-  // Set up the timer when quiz settings are loaded
   useEffect(() => {
-    if (quizSettings && !loading && timeRemaining === null && quizSettings.duration > 0) {
-      setTimeRemaining(quizSettings.duration); 
+    if (quizSettings && !loading && timeRemaining === null) {
+      const durationMs = quizSettings.duration * 1000; // Convert seconds to milliseconds
+      console.log("Initializing timer with duration (ms):", durationMs);
+      setTimeRemaining(durationMs);
       setTimerActive(true);
-    } else if (quizSettings && quizSettings.duration <= 0) {
-      console.warn("Received non-positive duration from API:", quizSettings.duration);
-      setTimeRemaining(0); 
-      setTimerActive(false);
     }
-  }, [quizSettings, loading]);
+  }, [quizSettings, loading, timeRemaining]);
 
-  // Timer countdown effect
   useEffect(() => {
-    if (!timerActive || timeRemaining === null || timeRemaining <= 0) {
-      if (timeRemaining !== null && timeRemaining <= 0) {
-        setTimerActive(false); 
-      }
-      return; 
+    if (!timerActive || timeRemaining === null) return;
+
+    if (timeRemaining <= 0) {
+      console.log("Timer reached zero, submitting quiz");
+      setTimerActive(false);
+      submitQuiz(true);
+      return;
     }
 
     const timerInterval = setInterval(() => {
       setTimeRemaining(prev => {
-        if (prev === null || prev <= 1000) { 
+        if (prev === null) {
+          console.error("Timer: prev is null");
+          return null;
+        }
+        const next = prev - 1000;
+        console.log("Timer tick, timeRemaining (ms):", next);
+        if (next <= 0) {
           clearInterval(timerInterval);
-          setTimerActive(false); 
-          setTimeout(() => submitQuiz(true), 50); 
           return 0;
         }
-        return prev - 1000; 
+        return next;
       });
     }, 1000);
 
-    return () => clearInterval(timerInterval);
+    return () => {
+      console.log("Clearing timer interval");
+      clearInterval(timerInterval);
+    };
   }, [timerActive, timeRemaining, submitQuiz]);
 
   const handleSelect = (questionId: string, optionId: number) => {
@@ -252,7 +245,8 @@ const QuizPage: React.FC = () => {
   };
 
   const handleSubmitQuiz = () => {
-    submitQuiz(false); 
+    setTimerActive(false);
+    submitQuiz(false);
   };
 
   const handleClose = () => {
@@ -275,7 +269,7 @@ const QuizPage: React.FC = () => {
     );
   }
 
-  const durationInMinutes = Math.floor(quizSettings.duration / 60000);
+  const durationInMinutes = Math.floor(quizSettings.duration / 60);
 
   return (
     <div className="w-full h-full max-lg:px-4 max-lg:py-4 overflow-y-auto py-15 px-70 bg-white">

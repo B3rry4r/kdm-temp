@@ -1,7 +1,5 @@
-// CourseProgressProvider.tsx (or wherever your CourseProgressContext is defined)
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
-// Define your types for CourseProgress and your context state
 interface ProgressData {
   [courseId: number]: {
     sections?: {
@@ -18,7 +16,7 @@ interface ProgressData {
 }
 
 interface CourseProgressContextType {
-  progress: ProgressData; // Assuming you store this state
+  progress: ProgressData;
   markLessonComplete: (courseId: number, sectionId: number, lessonId: number) => void;
   markSectionComplete: (courseId: number, sectionId: number) => void;
   getLessonStatus: (courseId: number, sectionId: number, lessonId: number) => boolean;
@@ -29,13 +27,12 @@ interface CourseProgressContextType {
 const CourseProgressContext = createContext<CourseProgressContextType | undefined>(undefined);
 
 export const CourseProgressProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [progress, setProgress] = useState<ProgressData>({}); // Example state for progress
+  const [progress, setProgress] = useState<ProgressData>({});
 
-  // *** IMPORTANT: Wrap these functions with useCallback ***
-
-  const markLessonComplete = useCallback((courseId: number, sectionId: number, lessonId: number) => {
-    setProgress(prevProgress => {
-      const newProgress = { ...prevProgress };
+  const markLessonComplete = (courseId: number, sectionId: number, lessonId: number) => {
+    console.log('markLessonComplete:', { courseId, sectionId, lessonId });
+    setProgress(prev => {
+      const newProgress = { ...prev };
       if (!newProgress[courseId]) newProgress[courseId] = {};
       if (!newProgress[courseId].sections) newProgress[courseId].sections = {};
       if (!newProgress[courseId].sections![sectionId]) newProgress[courseId].sections![sectionId] = {};
@@ -43,29 +40,32 @@ export const CourseProgressProvider: React.FC<{ children: React.ReactNode }> = (
       newProgress[courseId].sections![sectionId].lessons![lessonId] = { isCompleted: true };
       return newProgress;
     });
-  }, []); // Dependencies for setters are often empty if they just update state
+  };
 
-  const markSectionComplete = useCallback((courseId: number, sectionId: number) => {
-    setProgress(prevProgress => {
-      const newProgress = { ...prevProgress };
+  const markSectionComplete = (courseId: number, sectionId: number) => {
+    console.log('markSectionComplete:', { courseId, sectionId });
+    setProgress(prev => {
+      const newProgress = { ...prev };
       if (!newProgress[courseId]) newProgress[courseId] = {};
       if (!newProgress[courseId].sections) newProgress[courseId].sections = {};
       newProgress[courseId].sections![sectionId] = { ...(newProgress[courseId].sections![sectionId] || {}), isCompleted: true };
       return newProgress;
     });
-  }, []);
+  };
 
-  const getLessonStatus = useCallback((courseId: number, sectionId: number, lessonId: number): boolean => {
-    return progress[courseId]?.sections?.[sectionId]?.lessons?.[lessonId]?.isCompleted || false;
-  }, [progress]); // Depends on the 'progress' state
+  const getLessonStatus = (courseId: number, sectionId: number, lessonId: number): boolean => {
+    const isCompleted = progress[courseId]?.sections?.[sectionId]?.lessons?.[lessonId]?.isCompleted || false;
+    console.log('getLessonStatus:', { courseId, sectionId, lessonId, isCompleted });
+    return isCompleted;
+  };
 
-  const getSectionStatus = useCallback((courseId: number, sectionId: number): boolean => {
-    return progress[courseId]?.sections?.[sectionId]?.isCompleted || false;
-  }, [progress]); // Depends on the 'progress' state
+  const getSectionStatus = (courseId: number, sectionId: number): boolean => {
+    const isCompleted = progress[courseId]?.sections?.[sectionId]?.isCompleted || false;
+    console.log('getSectionStatus:', { courseId, sectionId, isCompleted });
+    return isCompleted;
+  };
 
-  const getCourseProgress = useCallback((courseId: number): number => {
-    // Implement your actual progress calculation logic here
-    // This is a placeholder for your actual logic
+  const getCourseProgress = (courseId: number): number => {
     const courseData = progress[courseId];
     if (!courseData || !courseData.sections) return 0;
 
@@ -83,30 +83,21 @@ export const CourseProgressProvider: React.FC<{ children: React.ReactNode }> = (
         }
       }
     }
-    return totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
-  }, [progress]); // Depends on the 'progress' state
+    const progressPercent = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+    console.log('getCourseProgress:', { courseId, progressPercent });
+    return progressPercent;
+  };
 
-  const contextValue = useMemo(() => ({
+  const contextValue: CourseProgressContextType = {
     progress,
     markLessonComplete,
     markSectionComplete,
     getLessonStatus,
     getSectionStatus,
     getCourseProgress,
-  }), [
-    progress,
-    markLessonComplete,
-    markSectionComplete,
-    getLessonStatus,
-    getSectionStatus,
-    getCourseProgress,
-  ]);
+  };
 
-  return (
-    <CourseProgressContext.Provider value={contextValue}>
-      {children}
-    </CourseProgressContext.Provider>
-  );
+  return <CourseProgressContext.Provider value={contextValue}>{children}</CourseProgressContext.Provider>;
 };
 
 export const useCourseProgress = () => {

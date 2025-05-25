@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../../../components/header/Header';
 import { ForwardArrowSVG } from '../../../assets/icons/icons';
@@ -12,8 +12,6 @@ import AlertMessage from '../../../components/AlertMessage';
 const contentOuterClasses = 'w-full max-lg:pr-0 h-full pr-60 flex flex-col';
 const contentHeaderClasses = 'w-full max-lg:px-4 max-lg:py-0 max-lg:pb-10 px-20 border-b border-gray-300 py-20';
 const contentButtonContainerClasses = 'flex items-center justify-center p-4';
-
-
 
 interface DocumentProps {
   documentTitle: string;
@@ -79,7 +77,6 @@ interface QuizScore {
 
 interface QuizProps {
   quizTitle: string;
-  isLocked: boolean;
   passmark: number;
   duration: number;
   courseId: number;
@@ -88,9 +85,9 @@ interface QuizProps {
   onStartQuiz: () => void;
 }
 
-const QuizComponent: React.FC<QuizProps> = ({ quizTitle, isLocked, passmark, duration, courseId, onPreviousLesson, onNextLesson, onStartQuiz }) => {
+const QuizComponent: React.FC<QuizProps> = ({ quizTitle, passmark, duration, courseId, onPreviousLesson, onNextLesson, onStartQuiz }) => {
   const { apiClient } = useAuth();
-  const [quizScore, setQuizScore] = useState<QuizScore | null>(null);
+  const [quizScore, setQuizScore] = useState<QuizScore>({ course_id: courseId, score: 0, correct: 0, incorrect: 0 });
   const [loadingScore, setLoadingScore] = useState(true);
 
   useEffect(() => {
@@ -98,46 +95,23 @@ const QuizComponent: React.FC<QuizProps> = ({ quizTitle, isLocked, passmark, dur
       try {
         setLoadingScore(true);
         const response = await apiClient.get<QuizScore>(`/course/quiz/score/${courseId}`);
-        setQuizScore(response.data);
+        setQuizScore({
+          course_id: response.data.course_id,
+          score: response.data.score ?? 0,
+          correct: response.data.correct ?? 0,
+          incorrect: response.data.incorrect ?? 0,
+        });
       } catch (err: any) {
         console.error('Error fetching quiz score:', err.response?.data || err.message);
-        setQuizScore(null); // No score available
+        setQuizScore({ course_id: courseId, score: 0, correct: 0, incorrect: 0 });
       } finally {
         setLoadingScore(false);
       }
     };
-
-    if (!isLocked) {
-      fetchQuizScore();
-    }
-  }, [courseId, isLocked, apiClient]);
+    fetchQuizScore();
+  }, [courseId, apiClient]);
 
   const durationInMinutes = Math.floor(duration / 60000);
-
-  if (isLocked) {
-    return (
-      <div className={contentOuterClasses}>
-        <div className={contentHeaderClasses}>
-          <div className='flex justify-between mb-6 items-center'>
-            <h1 className='font-bold'>{quizTitle}</h1>
-            <div className='flex items-center gap-2'>
-              <div onClick={onPreviousLesson} className='items-center p-2 cursor-pointer bg-gray-200 rounded-full rotate-180 flex w-7 h-7Limits: justify-center'>
-                <ForwardArrowSVG size={13} />
-              </div>
-              <div onClick={onNextLesson} className='items-center p-2 cursor-pointer bg-gray-200 rounded-full flex w-7 h-7 justify-center'>
-                <ForwardArrowSVG size={13} />
-              </div>
-            </div>
-          </div>
-          <div className='w-full h-auto py-5 rounded-lg flex flex-col items-center justify-center text-gray-700 gap-3'>
-            <div className='w-50 h-50 rounded-full bg-gray-300' />
-            <p className='font-bold text-lg'>Locked</p>
-            <p className='font-medium text-xs'>Complete all lessons to unlock</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={contentOuterClasses}>
@@ -163,9 +137,7 @@ const QuizComponent: React.FC<QuizProps> = ({ quizTitle, isLocked, passmark, dur
           <div className='w-full p-18 max-lg:p-8 bg-white max-lg:bg-gray-200 flex-col flex rounded-2xl'>
             <div className='flex items-center justify-between'>
               <p className='text-3xl max-lg:text-xl font-bold'>{passmark}% or Higher</p>
-              <p className='text-xs font-bold'>
-                {loadingScore || quizScore === null ? '-' : `${quizScore.score}%`}
-              </p>
+              <p className='text-xs font-bold'>{loadingScore ? '-' : `${quizScore.score}%`}</p>
             </div>
             <div className='w-[1px] h-full hidden max-lg:flex rounded-lg bg-gray-300'></div>
             <div className='flex items-center justify-between'>
@@ -174,11 +146,9 @@ const QuizComponent: React.FC<QuizProps> = ({ quizTitle, isLocked, passmark, dur
             </div>
             <div className='flex items-center justify-between mt-2'>
               <p className='text-xs font-bold text-gray-600'>Duration: {durationInMinutes} mins</p>
-              {quizScore && (
-                <p className='text-xs font-bold text-gray-600'>
-                  Correct: {quizScore.correct} | Incorrect: {quizScore.incorrect}
-                </p>
-              )}
+              <p className='text-xs font-bold text-gray-600'>
+                Correct: {quizScore.correct} | Incorrect: {quizScore.incorrect}
+              </p>
             </div>
           </div>
         </div>
@@ -266,6 +236,7 @@ const StartedCoursePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { apiClient } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
+  const [courseSections, setCourseSections] = useState<CourseSection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeLesson, setActiveLesson] = useState<ActiveLessonState | null>(null);
@@ -273,30 +244,37 @@ const StartedCoursePage: React.FC = () => {
   const [alertMsg, setAlertMsg] = useState('');
   const [alertSeverity, setAlertSeverity] = useState<'purple' | 'success' | 'error'>('purple');
   const [isActive, setIsActive] = useState(false);
-  
-  // Use CourseProgressContext for tracking
-  const { 
-    markLessonComplete, 
-    markSectionComplete, 
-    getLessonStatus, 
-    getSectionStatus,
-    getCourseProgress
-  } = useCourseProgress();
-  
+
+  const { markLessonComplete, markSectionComplete, getLessonStatus, getSectionStatus, getCourseProgress } = useCourseProgress();
   const courseId = id ? parseInt(id) : 0;
 
-  // Function to mark section complete via API
-  const markSectionCompleteAPI = async (courseId: number, sectionId: number) => {
-    console.log(`[DEBUG] Calling API to mark section ${sectionId} complete for course ${courseId}`);
-    console.log(`[DEBUG] Endpoint: /course/section/complete/2, Body:`, { section_id: sectionId });
+  const markSectionCompleteAPI = async (sectionId: number) => {
+    console.log('Calling markSectionCompleteAPI for sectionId:', sectionId);
     try {
       const response = await apiClient.post(`/course/section/complete/${sectionId}`);
-      console.log(`[DEBUG] Section ${sectionId} marked complete successfully:`, response.data);
+      console.log('Section marked complete on server:', response.data);
       return response.data;
     } catch (err: any) {
-      console.error(`[DEBUG] Error marking section ${sectionId} complete:`, err.response?.data || err.message);
+      console.error(`Error marking section ${sectionId} complete:`, err.response?.data || err.message);
       throw err;
     }
+  };
+
+  const estimateLessonTime = (lesson: Lesson): string => {
+    if (lesson.type === 1) return '15mins';
+    if (lesson.video !== '-') return '30mins';
+    return '20mins';
+  };
+
+  const calculateTotalTime = (lessons: Lesson[]): string => {
+    const totalMinutes = lessons.reduce((sum, lesson) => {
+      const timeStr = estimateLessonTime(lesson);
+      const minutes = parseInt(timeStr.replace('mins', '')) || 0;
+      return sum + minutes;
+    }, 0);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return hours > 0 ? `${hours}hr ${minutes}mins` : `${minutes}mins`;
   };
 
   useEffect(() => {
@@ -309,67 +287,31 @@ const StartedCoursePage: React.FC = () => {
 
       try {
         const response = await apiClient.get<Course>(`/course/${id}`);
-        
-        // Update course with progress data from context
         const progressPercent = getCourseProgress(parseInt(id));
-        const courseData = {
-          ...response.data,
-          completion_percent: progressPercent,
-        };
-        
+        const courseData = { ...response.data, completion_percent: progressPercent };
         setCourse(courseData);
-        
-        // Set the first incomplete lesson as active by default
+
         if (courseData.sections.length > 0) {
-          // Find first incomplete lesson
           let foundActiveLesson = false;
-          
           for (const section of courseData.sections) {
             const sectionId = `section-${section.id}`;
-            const sectionComplete = getSectionStatus(courseId, section.id);
-            
-            if (sectionComplete) continue;
-            
-            // Check lessons in this section
             for (let i = 0; i < section.lessons.length; i++) {
               const lesson = section.lessons[i];
-              const lessonComplete = getLessonStatus(courseId, section.id, lesson.id);
-              
-              if (!lessonComplete) {
-                setActiveLesson({
-                  sectionId,
-                  lessonIndex: i,
-                  isQuiz: false
-                });
+              if (!getLessonStatus(courseId, section.id, lesson.id)) {
+                setActiveLesson({ sectionId, lessonIndex: i, isQuiz: false });
                 foundActiveLesson = true;
                 break;
               }
             }
-            
             if (foundActiveLesson) break;
-            
-            // If we've completed all lessons in this section but not the quiz
-            if (section.lessons.length > 0 && courseData.quiz_settings) {
-              const quizComplete = getSectionStatus(courseId, section.id);
-              if (!quizComplete) {
-                setActiveLesson({
-                  sectionId,
-                  lessonIndex: 0,
-                  isQuiz: true
-                });
-                foundActiveLesson = true;
-                break;
-              }
+            if (courseData.quiz_settings && !getSectionStatus(courseId, section.id)) {
+              setActiveLesson({ sectionId, lessonIndex: 0, isQuiz: true });
+              foundActiveLesson = true;
+              break;
             }
           }
-          
-          // If all lessons are complete, just set the first one
           if (!foundActiveLesson && courseData.sections[0]?.lessons.length > 0) {
-            setActiveLesson({
-              sectionId: `section-${courseData.sections[0].id}`,
-              lessonIndex: 0,
-              isQuiz: false
-            });
+            setActiveLesson({ sectionId: `section-${courseData.sections[0].id}`, lessonIndex: 0, isQuiz: false });
           }
         }
       } catch (err: any) {
@@ -379,124 +321,92 @@ const StartedCoursePage: React.FC = () => {
         setIsLoading(false);
       }
     };
-
     fetchCourse();
   }, [id, apiClient, getCourseProgress, getLessonStatus, getSectionStatus]);
 
-  // Helper to estimate lesson time
-  const estimateLessonTime = (lesson: Lesson): string => {
-    if (lesson.type === 1) return '15mins'; // Documents
-    if (lesson.video !== '-') return '30mins'; // Videos
-    return '20mins'; // Default
-  };
-
-  // Helper to calculate total section time
-  const calculateTotalTime = (lessons: Lesson[]): string => {
-    const totalMinutes = lessons.reduce((sum, lesson) => {
-      const timeStr = estimateLessonTime(lesson);
-      const minutes = parseInt(timeStr.replace('mins', '')) || 0;
-      return sum + minutes;
-    }, 0);
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return hours > 0 ? `${hours}hr ${minutes}mins` : `${minutes}mins`;
-  };
-
-  // Map API data to courseSections and quiz
-  const courseSections = useMemo<CourseSection[]>(() => {
-    if (!course) return [];
-    
-    return course.sections.map(section => {
+  useEffect(() => {
+    if (!course) {
+      setCourseSections([]);
+      return;
+    }
+    const sections = course.sections.map(section => {
       const sectionId = section.id;
-      
+      const dropDownItems: CourseLessonItem[] = section.lessons.map(lesson => ({
+        title: lesson.title,
+        time: estimateLessonTime(lesson),
+        type: lesson.type === 1 ? 'document' : 'video',
+        isCompleted: getLessonStatus(courseId, sectionId, lesson.id),
+      }));
+      console.log('Section:', section.title, 'Completed:', dropDownItems.every(item => item.isCompleted));
       return {
         id: `section-${sectionId}`,
         title: section.title,
         numberOfLessons: section.lessons.length.toString(),
         totalTime: calculateTotalTime(section.lessons),
-        dropDownItems: section.lessons.map(lesson => ({
-          title: lesson.title,
-          time: estimateLessonTime(lesson),
-          type: lesson.type === 1 ? 'document' : 'video',
-          isCompleted: getLessonStatus(courseId, sectionId, lesson.id),
-        })),
+        dropDownItems,
       };
     });
+    console.log('courseSections:', sections);
+    setCourseSections(sections);
   }, [course, courseId, getLessonStatus]);
 
-  const quizItem: QuizItem | null = useMemo(
-    () =>
-      course?.quiz_settings
-        ? {
-            title: 'Course Quiz',
-            time: `${Math.floor(course.quiz_settings.duration / 60000)}mins`,
-            type: 'quiz',
-            isCompleted: getSectionStatus(courseId, course.id),
-          }
-        : null,
-    [course, courseId, getSectionStatus]
-  );
+  const quizItem: QuizItem | null = course?.quiz_settings
+    ? {
+        title: 'Course Quiz',
+        time: `${Math.floor(course.quiz_settings.duration / 60000)}mins`,
+        type: 'quiz',
+        isCompleted: getSectionStatus(courseId, course.id),
+      }
+    : null;
 
   const handleLessonCompleted = async (sectionId: string, lessonIndex: number, isQuiz: boolean) => {
-    if (!course) {
-      console.log(`[DEBUG] Course data is null`);
-      return;
-    }
-    
+    if (!course) return;
     if (isQuiz) {
-      console.log(`[DEBUG] Quiz selected for course ${courseId}, navigating to quiz page`);
+      console.log('Navigating to quiz for courseId:', course.id);
       navigate(`/quiz/${course.id}`);
       return;
     }
-    
+
     const sectionIdNumber = parseInt(sectionId.replace('section-', ''));
     const section = course.sections.find(s => s.id === sectionIdNumber);
-    
     if (!section) {
-      console.log(`[DEBUG] Section ${sectionIdNumber} not found for course ${courseId}`);
+      console.error('Section not found for sectionId:', sectionIdNumber);
       return;
     }
-    
+
     const lesson = section.lessons[lessonIndex];
     if (!lesson) {
-      console.log(`[DEBUG] Lesson at index ${lessonIndex} not found in section ${sectionIdNumber}`);
+      console.error('Lesson not found at index:', lessonIndex);
       return;
     }
-    
-    console.log(`[DEBUG] Marking lesson ${lesson.id} (${lesson.title}) complete in section ${sectionIdNumber}`);
+
     try {
+      console.log('Marking lesson complete:', { courseId, sectionId: sectionIdNumber, lessonId: lesson.id });
       markLessonComplete(courseId, sectionIdNumber, lesson.id);
       setAlertMsg('Lesson completed successfully!');
       setAlertSeverity('success');
       setAlertOpen(true);
-      
-      // Check if all lessons in this section are complete
-      const allLessonsComplete = section.lessons.every(l => 
-        getLessonStatus(courseId, sectionIdNumber, l.id)
-      );
-      
-      console.log(`[DEBUG] All lessons complete in section ${sectionIdNumber}: ${allLessonsComplete}`);
-      
+
+      const allLessonsComplete = section.lessons.every(l => getLessonStatus(courseId, sectionIdNumber, l.id));
+      console.log('All lessons complete in section:', allLessonsComplete);
       if (allLessonsComplete && section.lessons.length > 0) {
-        console.log(`[DEBUG] Attempting to mark section ${sectionIdNumber} complete for course ${courseId}`);
         try {
-          await markSectionCompleteAPI(courseId, sectionIdNumber);
+          await markSectionCompleteAPI(sectionIdNumber);
           markSectionComplete(courseId, sectionIdNumber);
           setAlertMsg('Section completed successfully!');
           setAlertSeverity('success');
           setAlertOpen(true);
-          console.log(`[DEBUG] Section ${sectionIdNumber} marked complete in context`);
         } catch (err: any) {
-          console.error(`[DEBUG] Failed to mark section ${sectionIdNumber} complete:`, err.response?.data || err.message);
+          console.error('Error marking section complete:', err);
           setAlertMsg(`Failed to complete section: ${err.response?.data?.message || err.message}`);
           setAlertSeverity('error');
           setAlertOpen(true);
         }
       }
-      
+
       goToNextLesson();
     } catch (err: any) {
-      console.error(`[DEBUG] Error marking lesson ${lesson.id} complete:`, err.response?.data || err.message);
+      console.error('Error marking lesson complete:', err);
       setAlertMsg(`Failed to complete lesson: ${err.response?.data?.message || err.message}`);
       setAlertSeverity('error');
       setAlertOpen(true);
@@ -536,24 +446,6 @@ const StartedCoursePage: React.FC = () => {
     }
   };
 
-  const checkQuizLocked = () => {
-    if (!course?.quiz_settings) return true;
-    for (const section of courseSections) {
-      for (let j = 0; j < section.dropDownItems.length; j++) {
-        const sectionIdNumber = parseInt(section.id.replace('section-', ''));
-        const sectionObj = course.sections.find(s => s.id === sectionIdNumber);
-        if (!sectionObj) continue;
-        
-        const lessonItem = section.dropDownItems[j];
-        const lesson = sectionObj.lessons.find(l => l.title === lessonItem.title);
-        if (!lesson) continue;
-        
-        if (!getLessonStatus(courseId, sectionIdNumber, lesson.id)) return true;
-      }
-    }
-    return false;
-  };
-
   const activeLessonData = activeLesson
     ? activeLesson.isQuiz && course?.quiz_settings
       ? quizItem
@@ -579,10 +471,8 @@ const StartedCoursePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
       <div
-        className='w-11 h-11 items-center justify-center rounded-full hidden max-lg:flex fixed=-lg:flex fixed p-3 top-1 left-2 z-999 flex-col gap-1'
-        onClick={() => {
-          setIsActive(!isActive);
-        }}
+        className='w-11 h-11 items-center justify-center rounded-full hidden max-lg:flex fixed p-3 top-1 left-2 z-999 flex-col gap-1'
+        onClick={() => setIsActive(!isActive)}
       >
         <div className='w-full h-[2px] rounded-lg bg-black'></div>
         <div className='w-full h-[2px] rounded-lg bg-black'></div>
@@ -613,7 +503,6 @@ const StartedCoursePage: React.FC = () => {
                 isNavStyle
                 isUserOwned
                 dropDownItems={section.dropDownItems}
-                // onLessonClick={idx => setActiveLesson({ sectionId: section.id, lessonIndex: idx, isQuiz: false })}
               />
             ))}
             {course.quiz_settings && quizItem && (
@@ -666,7 +555,6 @@ const StartedCoursePage: React.FC = () => {
             ) : (
               <QuizComponent
                 quizTitle={activeLessonData.title}
-                isLocked={checkQuizLocked()}
                 passmark={course.quiz_settings!.passmark}
                 duration={course.quiz_settings!.duration}
                 courseId={course.id}
@@ -680,7 +568,6 @@ const StartedCoursePage: React.FC = () => {
           )}
         </div>
       </div>
-      
       <AlertMessage
         open={alertOpen}
         message={alertMsg}
