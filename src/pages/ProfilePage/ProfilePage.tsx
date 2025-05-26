@@ -12,7 +12,6 @@ import UserCard from '../HomePage/HomePageComponents/UserCard';
 import { useAuth } from '../../context/AuthContext/AuthContext';
 import { usePostUpdate } from '../../context/PostUpdateContext/PostUpdateContext';
 import AlertMessage from '../../components/AlertMessage';
-// import CloseIcon from '@mui/icons-material/Close'; 
 
 // Interface for profile data
 interface ProfileData {
@@ -83,7 +82,7 @@ const ProfilePage = () => {
   const { user, apiClient } = useAuth();
   const id = user?.id;
   const navigate = useNavigate();
-  const { shouldRefresh } = usePostUpdate();
+  const { refreshKey } = usePostUpdate();
 
   const [isFollowingOpen, setFollowingOpen] = useState(false);
   const [isFollowersOpen, setIsFollowersOpen] = useState(false);
@@ -138,7 +137,7 @@ const ProfilePage = () => {
       setHasMore(true);
       fetchPosts();
     }
-  }, [id, shouldRefresh, apiClient]);
+  }, [id, refreshKey, apiClient]);
 
   // Infinite scroll
   useEffect(() => {

@@ -99,7 +99,7 @@ const OtherUsersProfilePage = () => {
   const { apiClient, user: authUser } = useAuth();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { shouldRefresh } = usePostUpdate();
+  const { refreshKey } = usePostUpdate();
 
   const [isFollowingOpen, setFollowingOpen] = useState(false);
   const [isFollowersOpen, setIsFollowersOpen] = useState(false);
@@ -165,7 +165,7 @@ const OtherUsersProfilePage = () => {
     setPage(1);
     setHasMore(true);
     fetchPosts();
-  }, [id, shouldRefresh, apiClient]);
+  }, [id, refreshKey, apiClient]);
 
   // Infinite scroll
   useEffect(() => {
@@ -309,7 +309,6 @@ const OtherUsersProfilePage = () => {
   const handleEnrollClick = () => {
     navigate('/');
   };
-
 
   if (!profile) {
     return (
