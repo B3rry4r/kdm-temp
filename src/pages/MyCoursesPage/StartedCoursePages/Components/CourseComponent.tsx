@@ -40,7 +40,11 @@ const CourseComponent: React.FC<CourseProps> = React.memo(({ title, description,
   };
 
   const onYouTubeError: YouTubeProps['onError'] = (event) => {
-    setPlayerError(`YouTube error: Code ${event.data}`);
+    let errorMessage = 'Error playing YouTube video';
+    if (event.data === 150 || event.data === 101) {
+      errorMessage = 'This video cannot be played here due to embedding restrictions. Watch it on YouTube.';
+    }
+    setPlayerError(errorMessage);
     setIsYouTubeLoading(false);
     console.error('YouTube player error:', event.data);
   };
@@ -124,8 +128,18 @@ const CourseComponent: React.FC<CourseProps> = React.memo(({ title, description,
                 </div>
               )}
               {playerError && (
-                <div className='absolute top-0 left-0 w-full h-full bg-gray-800 bg-opacity-50 flex items-center justify-center'>
+                <div className='absolute top-0 left-0 w-full h-full bg-gray-800 bg-opacity-50 flex items-center justify-center flex-col gap-2'>
                   <p className='text-white text-xs'>{playerError}</p>
+                  {playerError.includes('embedding restrictions') && (
+                    <a
+                      href={`https://www.youtube.com/watch?v=${youtubeVideoId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className='text-blue-400 text-xs underline hover:text-blue-600'
+                    >
+                      Watch on YouTube
+                    </a>
+                  )}
                 </div>
               )}
             </>
@@ -140,7 +154,7 @@ const CourseComponent: React.FC<CourseProps> = React.memo(({ title, description,
               onEnded={() => setIsPlaying(false)}
             />
           )}
-          {isYouTube && (
+          {isYouTube && !playerError && (
             <button
               onClick={togglePlayPause}
               className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[#68049B] rounded-full p-2 opacity-10 hover:opacity-100 transition-opacity duration-200'
