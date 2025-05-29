@@ -14,6 +14,7 @@ interface Course {
   price: string | number | null;
   org_id: number | null;
   enrolled: boolean;
+  status: string;
 }
 
 const CoursesPage = () => {
@@ -31,14 +32,14 @@ const CoursesPage = () => {
     const fetchCourses = async () => {
       try {
         const response = await apiClient.get<Course[]>('/courses');
-        const courseData = response.data.map(course => ({
-          ...course,
-          enrolled: course.enrolled,
-        }));
-        console.log('Fetched courses:', courseData.map(c => ({ id: c.id, title: c.title, enrolled: c.enrolled })));
+        const courseData = response.data
+          .filter(course => course.status === 'Published')
+          .map(course => ({
+            ...course,
+            enrolled: course.enrolled,
+          }));
         setCourses(courseData);
       } catch (err: any) {
-        console.error('Error fetching courses:', err.response?.data || err.message);
         setAlertMsg('Failed to load courses');
         setAlertSeverity('error');
         setAlertOpen(true);
