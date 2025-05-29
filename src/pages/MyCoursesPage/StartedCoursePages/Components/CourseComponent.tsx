@@ -1,19 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
+import YouTube, { YouTubeProps } from 'react-youtube';
 import { Play, Pause } from 'lucide-react';
 import { ForwardArrowSVG } from '../../../../assets/icons/icons';
-
-declare global {
-  interface Window {
-    YT: any;
-    onYouTubeIframeAPIReady?: () => void;
-  }
-}
-
-const getYouTubeVideoId = (url: string): string | null => {
-  const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-  const match = url.match(regex);
-  return match ? match[1] : null;
-};
 
 interface CourseProps {
   title: string;
@@ -24,165 +12,48 @@ interface CourseProps {
   onNextLesson: () => void;
 }
 
+const getYouTubeVideoId = (url: string): string | null => {
+  const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+  const match = url.match(regex);
+  return match ? match[1] : null;
+};
+
 const CourseComponent: React.FC<CourseProps> = React.memo(({ title, description, videoUrl, onComplete, onPreviousLesson, onNextLesson }) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const playerRef = useRef<any>(null);
-  const youtubePlayerDivRef = useRef<HTMLDivElement>(null);
-  const [isYouTube, setIsYouTube] = useState(false);
   const [isYouTubeLoading, setIsYouTubeLoading] = useState(false);
   const [playerError, setPlayerError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const youtubePlayerRef = useRef<any>(null);
   const youtubeVideoId = getYouTubeVideoId(videoUrl);
-  const isMounted = useRef(true);
+  const isYouTube = !!youtubeVideoId;
 
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
+  const onYouTubeReady: YouTubeProps['onReady'] = (event) => {
+    setIsYouTubeLoading(false);
+    youtubePlayerRef.current = event.target;
+    console.log('YouTube player ready');
+  };
 
-  const initializePlayer = useCallback(() => {
-    if (!isMounted.current) {
-      console.log('Component unmounted, skipping player initialization');
-      return;
-    }
-    if (!youtubeVideoId) {
-      console.log('No YouTube video ID, clearing player');
-      setIsYouTubeLoading(false);
-      if (playerRef.current) {
-        playerRef.current.destroy();
-        playerRef.current = null;
-      }
-      return;
-    }
+  const onYouTubeStateChange: YouTubeProps['onStateChange'] = (event) => {
+    const playing = event.data === window.YT?.PlayerState?.PLAYING;
+    setIsPlaying(playing);
+    console.log('YouTube player state:', event.data);
+  };
 
-    if (!window.YT || !window.YT.Player) {
-      console.log('YouTube API not loaded');
-      return;
-    }
-
-    const playerDiv = youtubePlayerDivRef.current;
-    if (!playerDiv) {
-      console.error('YouTube player container not found');
-      setPlayerError('YouTube player container not found.');
-      setIsYouTubeLoading(false);
-      return;
-    }
-
-    console.log('Creating YouTube player for video ID:', youtubeVideoId);
-    setIsYouTubeLoading(true);
-    playerRef.current = new window.YT.Player(playerDiv, {
-      height: '100%',
-      width: '100%',
-      videoId: youtubeVideoId,
-      playerVars: {
-        controls: 1,
-        modestbranding: 1,
-        origin: window.location.origin,
-      },
-      events: {
-        onReady: () => {
-          if (isMounted.current) {
-            console.log('YouTube player ready');
-            setPlayerError(null);
-            setIsYouTubeLoading(false);
-            setIsPlaying(true);
-          }
-        },
-        onStateChange: (event: any) => {
-          if (isMounted.current) {
-            console.log('YouTube player state:', event.data);
-            setIsPlaying(event.data === window.YT.PlayerState.PLAYING);
-          }
-        },
-        onError: (event: any) => {
-          if (isMounted.current) {
-            console.error('YouTube player error:', event.data);
-            setPlayerError(`YouTube error: Code ${event.data}`);
-            setIsYouTubeLoading(false);
-          }
-        },
-      },
-    });
-  }, [youtubeVideoId]);
-
-  useEffect(() => {
-    console.log('useEffect for videoUrl:', videoUrl);
-    setIsYouTube(!!youtubeVideoId);
-    setPlayerError(null);
-    setIsYouTubeLoading(!!youtubeVideoId);
-
-    if (youtubeVideoId) {
-      console.log('Loading YouTube video ID:', youtubeVideoId);
-      if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
-        console.log('Injecting YouTube API script');
-        const tag = document.createElement('script');
-        tag.src = 'https://www.youtube.com/iframe_api';
-        tag.onerror = () => {
-          if (isMounted.current) {
-            console.error('Failed to load YouTube API script');
-            setPlayerError('Failed to load YouTube API');
-            setIsYouTubeLoading(false);
-          }
-        };
-        const firstScriptTag = document.getElementsByTagName('script')[0];
-        if (firstScriptTag?.parentNode) {
-          firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-        }
-      }
-
-      window.onYouTubeIframeAPIReady = () => {
-        console.log('onYouTubeIframeAPIReady triggered');
-        initializePlayer();
-      };
-
-      const timeout = setTimeout(() => {
-        if (isMounted.current && isYouTubeLoading && !window.YT?.Player) {
-          console.error('YouTube API timeout after 10s');
-          setPlayerError('YouTube API failed to load');
-          setIsYouTubeLoading(false);
-        }
-      }, 10000);
-
-      return () => {
-        clearTimeout(timeout);
-        if (window.onYouTubeIframeAPIReady === initializePlayer) {
-          window.onYouTubeIframeAPIReady = undefined;
-        }
-      };
-    } else {
-      console.log('Not a YouTube video');
-      setIsYouTubeLoading(false);
-      setIsPlaying(false);
-      if (playerRef.current) {
-        playerRef.current.destroy();
-        playerRef.current = null;
-      }
-    }
-
-    return () => {
-      console.log('Cleaning up YouTube player');
-      if (playerRef.current) {
-        try {
-          playerRef.current.destroy();
-        } catch (err) {
-          console.error('Error destroying player:', err);
-        }
-        playerRef.current = null;
-      }
-    };
-  }, [youtubeVideoId, initializePlayer]);
+  const onYouTubeError: YouTubeProps['onError'] = (event) => {
+    setPlayerError(`YouTube error: Code ${event.data}`);
+    setIsYouTubeLoading(false);
+    console.error('YouTube player error:', event.data);
+  };
 
   const togglePlayPause = () => {
-    if (isYouTube && playerRef.current) {
+    if (isYouTube && youtubePlayerRef.current) {
       try {
-        const state = playerRef.current.getPlayerState();
+        const state = youtubePlayerRef.current.getPlayerState();
         console.log('Toggling YouTube player, state:', state);
-        if (state === window.YT.PlayerState.PLAYING) {
-          playerRef.current.pauseVideo();
+        if (state === window.YT?.PlayerState?.PLAYING) {
+          youtubePlayerRef.current.pauseVideo();
         } else {
-          playerRef.current.playVideo();
+          youtubePlayerRef.current.playVideo();
         }
       } catch (err) {
         console.error('Error toggling YouTube:', err);
@@ -203,7 +74,7 @@ const CourseComponent: React.FC<CourseProps> = React.memo(({ title, description,
       }
     } else {
       console.error('No player available');
-      setPlayerError('No video player');
+      setPlayerError('No video player available');
     }
   };
 
@@ -231,7 +102,22 @@ const CourseComponent: React.FC<CourseProps> = React.memo(({ title, description,
         <div className='w-full h-80 max-lg:h-60 relative'>
           {isYouTube ? (
             <>
-              <div ref={youtubePlayerDivRef} id="youtube-player" className='w-full h-full' />
+              <YouTube
+                videoId={youtubeVideoId!}
+                opts={{
+                  height: '100%',
+                  width: '100%',
+                  playerVars: {
+                    controls: 1,
+                    modestbranding: 1,
+                    origin: window.location.origin,
+                  },
+                }}
+                onReady={onYouTubeReady}
+                onStateChange={onYouTubeStateChange}
+                onError={onYouTubeError}
+                className='w-full h-full'
+              />
               {isYouTubeLoading && (
                 <div className='absolute top-0 left-0 w-full h-full flex items-center justify-center bg-white bg-opacity-75'>
                   <div className="loader"></div>
@@ -249,10 +135,12 @@ const CourseComponent: React.FC<CourseProps> = React.memo(({ title, description,
               src={videoUrl}
               className='w-full h-full object-cover'
               controls
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
               onEnded={() => setIsPlaying(false)}
             />
           )}
-          {!isYouTube && (
+          {isYouTube && (
             <button
               onClick={togglePlayPause}
               className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[#68049B] rounded-full p-2 opacity-10 hover:opacity-100 transition-opacity duration-200'
@@ -273,3 +161,9 @@ const CourseComponent: React.FC<CourseProps> = React.memo(({ title, description,
 });
 
 export default CourseComponent;
+
+declare global {
+  interface Window {
+    YT?: any;
+  }
+}
