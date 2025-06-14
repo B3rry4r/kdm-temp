@@ -66,6 +66,11 @@ const LeftNavBar = () => {
       ],
     },
     {
+      title: "Super Quiz",
+      icon: CoursesSVG,
+      link: "/super-quiz",
+    },
+    {
       title: "Speak To An Advisor",
       icon: SpeatToAnAdvisorSVG,
       isMailto: true,

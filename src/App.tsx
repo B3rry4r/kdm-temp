@@ -29,6 +29,13 @@ import { PostUpdateProvider } from "./context/PostUpdateContext/PostUpdateContex
 import { AlertProvider } from "./context/AlertContext/AlertContext";
 import { SearchProvider } from "./components/header/Header";
 import { CourseProgressProvider } from "./context/CourseProgressContext/CourseProgressContext";
+import SuperQuiz from "./pages/SuperQuiz/SuperQuiz";
+import FinancialLiteracyQuiz from "./pages/SuperQuiz/FinancialLiteracyQuiz/FinancialLiteracyQuiz";
+import KickstartMyBizQuiz from "./pages/SuperQuiz/KickstartMyBizQuiz/KickstartMyBizQuiz";
+import FinancialLiteracyQuizPage from "./pages/SuperQuiz/FinancialLiteracyQuiz/FinancialLiteracyQuizPage";
+import KickstartMyBizQuizPage from "./pages/SuperQuiz/KickstartMyBizQuiz/KickstartMyBizQuizPage";
+import FinancialLiteracyQuizResultsPage from "./pages/SuperQuiz/FinancialLiteracyQuiz/FinancialLiteracyQuizResultsPage";
+import KickstartMyBizQuizResultsPage from "./pages/SuperQuiz/KickstartMyBizQuiz/KickstartMyBizQuizResultsPage";
 
 const App: React.FC = () => (
   <Router>
@@ -171,6 +178,68 @@ const App: React.FC = () => (
                       </PrivateRoute>
                     }
                   />
+                  <Route
+                    path="/super-quiz"
+                    element={
+                      <PrivateRoute>
+                        <Layout>
+                          <SuperQuiz />
+                        </Layout>
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/quiz/financial-literacy"
+                    element={
+                      <PrivateRoute>
+                        <Layout>
+                          <FinancialLiteracyQuiz />
+                        </Layout>
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/quiz/kickstart-my-biz"
+                    element={
+                      <PrivateRoute>
+                        <Layout>
+                          <KickstartMyBizQuiz />
+                        </Layout>
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+  path="/quiz/financial-literacy/start"
+  element={
+    <PrivateRoute>
+      <FinancialLiteracyQuizPage />
+    </PrivateRoute>
+  }
+/>
+<Route
+  path="/super-quiz/financial-literacy/results"
+  element={
+    <PrivateRoute>
+      <FinancialLiteracyQuizResultsPage />
+    </PrivateRoute>
+  }
+/>
+<Route
+  path="/quiz/kickstart-my-biz/start"
+  element={
+    <PrivateRoute>
+      <KickstartMyBizQuizPage />
+    </PrivateRoute>
+  }
+/>
+<Route
+  path="/super-quiz/kickstart-my-biz/results"
+  element={
+    <PrivateRoute>
+      <KickstartMyBizQuizResultsPage />
+    </PrivateRoute>
+  }
+/>
                   <Route
                     path="/settings"
                     element={
