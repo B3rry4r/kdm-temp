@@ -48,7 +48,7 @@ const QuestionComponent: React.FC<QuestionComponentProps> = ({
   onSelect,
 }) => (
   <div className="py-6 max-lg:px-4">
-    <div className="flex flex-col gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
       <div className="font-bold">
         {index + 1}. {question.text}
       </div>
@@ -213,8 +213,8 @@ const FinancialLiteracyQuizPage: React.FC = () => {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl mx-auto py-8">
-      <div className="mb-4 flex justify-between items-center">
+    <form onSubmit={handleSubmit} className="max-w-2xl mx-auto py-8 px-4">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="font-bold text-lg">Financial Literacy Quiz</div>
         <div className="text-sm">Time Remaining: {formatTime(timeRemaining)}</div>
       </div>
@@ -229,7 +229,7 @@ const FinancialLiteracyQuizPage: React.FC = () => {
       ))}
       <button
         type="submit"
-        className="mt-6 bg-[#FFD30F] text-black font-semibold px-6 py-2 rounded-md hover:brightness-95"
+        className="mt-6 w-full bg-[#FFD30F] text-black font-semibold py-3 rounded-md hover:brightness-95"
       >
         Submit Quiz
       </button>

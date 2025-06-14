@@ -114,14 +114,14 @@ const KickstartMyBizQuizResultsPage: React.FC = () => {
   return (
     <div className="w-full h-full overflow-y-auto py-15 bg-[#FFFEF6]">
       {/* Header */}
-      <div className="flex items-center gap-6 px-60 pt-6 pb-2">
+      <div className="flex items-center gap-6 px-4 md:px-10 lg:px-60 pt-6 pb-2">
         <span className="text-xl cursor-pointer" onClick={handleGoToQuiz}>×</span>
         <span className="font-semibold text-lg text-gray-700">Kickstart My Biz Quiz</span>
       </div>
       {/* Banner */}
-      <div className={`w-full py-10 px-60 ${passed ? 'bg-[#D9FAD7]' : 'bg-[#FFD6D6]'}`}>
-        <div className="flex items-center justify-between">
-          <h1 className={`text-2xl font-bold ${passed ? 'text-[#0A3A10]' : 'text-[#9B1C1C]'}`}>{passed ? 'Congratulations!! You passed' : 'Sorry, you did not pass'}</h1>
+      <div className={`w-full py-10 px-4 md:px-10 lg:px-60 ${passed ? 'bg-[#D9FAD7]' : 'bg-[#FFD6D6]'}`}>
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <h1 className={`text-2xl font-bold text-center md:text-left ${passed ? 'text-[#0A3A10]' : 'text-[#9B1C1C]'}`}>{passed ? 'Congratulations!! You passed' : 'Sorry, you did not pass'}</h1>
           <button
             className="bg-white rounded px-5 py-2 text-[#222] font-medium border border-gray-200 shadow-sm"
             onClick={handleGoToQuiz}
@@ -131,8 +131,8 @@ const KickstartMyBizQuizResultsPage: React.FC = () => {
         </div>
       </div>
       {/* Score Summary */}
-      <div className="flex gap-8 px-60 py-8">
-        <div className="bg-[#FFF6E5] rounded-xl shadow p-6 flex gap-8 items-center">
+      <div className="flex flex-wrap gap-8 px-4 md:px-10 lg:px-60 py-8">
+        <div className="bg-[#FFF6E5] rounded-xl shadow p-6 flex flex-wrap gap-8 items-center">
           <div className="flex flex-col items-center">
             <span className="text-xs text-gray-500">To Pass</span>
             <span className="text-2xl font-bold text-[#222]">{passmark}%</span>
@@ -153,9 +153,9 @@ const KickstartMyBizQuizResultsPage: React.FC = () => {
       </div>
       {/* Certificate Section */}
       {passed && (
-        <div className="flex items-center gap-8 px-60 pb-8">
+        <div className="flex flex-col md:flex-row items-center gap-8 px-4 md:px-10 lg:px-60 pb-8">
           <img src="/certificate_sample.png" alt="Certificate" className="w-40 h-28 rounded shadow border border-gray-200 object-cover bg-white" />
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 text-center md:text-left">
             <span className="font-semibold text-lg">Congratulations on getting your certificate!</span>
             <button
               className="bg-[#FFD600] hover:bg-[#FFB800] text-[#222] font-bold px-6 py-2 mt-2 rounded-lg shadow"
@@ -167,10 +167,10 @@ const KickstartMyBizQuizResultsPage: React.FC = () => {
         </div>
       )}
       {/* Participant Type Modal for certificate download */}
-      <Modal isOpen={isModalOpen} onClose={handleCloseModal} width="w-[420px]">
+      <Modal isOpen={isModalOpen} onClose={handleCloseModal} width="w-full max-w-md">
         <div className="flex flex-col gap-6">
           <h2 className="text-lg font-bold">Select participant type</h2>
-          <div className="flex gap-4">
+          <div className="flex flex-col md:flex-row gap-4">
             <button
               className={`flex-1 border rounded-lg py-4 px-2 flex flex-col items-center ${participantType === 'institution' ? 'border-[#68049B] bg-[#F8F4FF]' : 'border-gray-200 bg-white'}`}
               onClick={() => setParticipantType('institution')}
@@ -212,7 +212,7 @@ const KickstartMyBizQuizResultsPage: React.FC = () => {
         </div>
       </Modal>
       {/* Answers Section */}
-      <div className="px-60 pr-70 pb-10">
+      <div className="px-4 md:px-10 lg:px-60 lg:pr-70 pb-10">
         <h2 className="text-lg font-bold mt-2 mb-4">Your answers</h2>
         {questions.map((q, idx) => {
           const selectedOptionId = answers[q.id];

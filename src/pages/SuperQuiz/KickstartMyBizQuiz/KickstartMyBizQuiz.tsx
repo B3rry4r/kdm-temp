@@ -6,7 +6,7 @@ const KickstartMyBizQuiz: React.FC = () => {
   return (
     <div className="w-full h-full flex flex-col md:flex-row items-center justify-between gap-8 p-4 md:p-12">
       {/* Left: Text Content */}
-      <div className="flex-1 max-w-xl flex flex-col justify-center">
+      <div className="flex-1 max-w-xl flex flex-col justify-center items-center md:items-start text-center md:text-left">
         <button
           className="w-10 h-10 rounded-full bg-[#FFF6E8] flex items-center justify-center mb-8 hover:bg-[#F3E9DF] transition"
           aria-label="Back"
@@ -26,7 +26,7 @@ const KickstartMyBizQuiz: React.FC = () => {
           <li>Expert-backed strategies to fuel growth</li>
         </ul>
         <button
-          className="flex w-45 items-center gap-2 bg-[#FFD30F] hover:brightness-95 transition text-black font-semibold text-sm rounded-md px-4 cursor-pointer py-3 mt-2 shadow-sm"
+          className="flex w-full md:w-auto justify-center items-center gap-2 bg-[#FFD30F] hover:brightness-95 transition text-black font-semibold text-sm rounded-md px-4 cursor-pointer py-3 mt-2 shadow-sm"
           onClick={() => navigate('/quiz/kickstart-my-biz/start')}
         >
           Proceed to Quiz
