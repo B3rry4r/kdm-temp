@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import ContentCard from './HomePageComponents/ContentCard';
 import Banner from './HomePageComponents/banner';
 import RightSideBar from '../../components/RightSideBar/RightSideBar';
@@ -61,12 +61,15 @@ const HomePage = () => {
   const [content, setContent] = useState<Array<{ type: string; data: any }>>([]);
   const [ads, setAds] = useState<Ad[]>([]);
   const [page, setPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { searchQuery } = useSearch();
   const { refreshKey } = usePostUpdate();
+  const loadedPostIds = useRef<Set<number>>(new Set());
+  const isInitialLoad = useRef(true);
 
   // Helper to check if user exists in localStorage
   const isUserInLocalStorage = (): boolean => {
@@ -74,7 +77,7 @@ const HomePage = () => {
     return !!storedUser && storedUser !== 'null' && storedUser !== 'undefined';
   };
 
-  // Fetch ads
+  // Fetch ads - only once
   useEffect(() => {
     const fetchAds = async () => {
       try {
@@ -87,25 +90,43 @@ const HomePage = () => {
       }
     };
     fetchAds();
-  }, [apiClient]);
+  }, []); // Remove apiClient dependency to prevent re-fetching
 
-  // Fetch posts
-  const fetchPosts = async (pageNum: number, isRefresh: boolean = false) => {
-    if (isLoading || (!isRefresh && !hasMore)) return;
-    setIsLoading(true);
-    setError(null);
+  // Fetch posts function - fixed dependencies
+  const fetchPosts = useCallback(async (pageNum: number, isRefresh: boolean = false) => {
+    console.log(`fetchPosts called - page: ${pageNum}, isRefresh: ${isRefresh}, isLoadingMore: ${isLoadingMore}, hasMore: ${hasMore}`);
+    
+    // Prevent multiple simultaneous requests
+    if (!isRefresh && (isLoadingMore || !hasMore)) {
+      console.log('Request blocked - already loading or no more data');
+      return;
+    }
+    
+    if (isRefresh) {
+      setIsLoading(true);
+      setError(null);
+    } else {
+      setIsLoadingMore(true);
+    }
 
     try {
       // Determine endpoint based on authentication and localStorage
       const endpoint = isAuthenticated && isUserInLocalStorage() ? '/posts' : '/posts/public';
-      console.log(`Fetching posts from ${endpoint} (page: ${pageNum}, isRefresh: ${isRefresh})`);
+      console.log(`Fetching posts from ${endpoint} (page: ${pageNum})`);
 
       const response = await apiClient.get<PaginatedPostsResponse>(endpoint, {
         params: { page: pageNum, perPage: 10 },
       });
-      console.log(`GET ${endpoint} response:`, JSON.stringify(response.data, null, 2));
+      
+      console.log(`GET ${endpoint} response:`, {
+        current_page: response.data.current_page,
+        last_page: response.data.last_page,
+        total: response.data.total,
+        data_length: response.data.data.length
+      });
 
-      const posts = response.data.data.map((post) => ({
+      // Process posts
+      const newPosts = response.data.data.map((post) => ({
         type: 'content',
         data: {
           id: post.id.toString(),
@@ -121,51 +142,93 @@ const HomePage = () => {
           time: post.updated_at || 'Unknown Time',
           comments: post.comments_count ?? 0,
           profilePicture: post.user?.profile_picture
-            ? `${post.user.profile_picture}?t=${Date.now()}` // Cache-busting
+            ? `${post.user.profile_picture}?t=${Date.now()}`
             : null,
           userId: post.user_id.toString(),
         },
       }));
 
-      setContent((prevContent) => (isRefresh ? posts : [...prevContent, ...posts]));
-      setPage(pageNum + 1);
-      setHasMore(response.data.current_page < response.data.last_page);
+      if (isRefresh) {
+        // Reset everything on refresh
+        loadedPostIds.current.clear();
+        newPosts.forEach(post => loadedPostIds.current.add(parseInt(post.data.id)));
+        setContent(newPosts);
+        setPage(response.data.current_page + 1);
+      } else {
+        // Filter duplicates for pagination
+        const uniquePosts = newPosts.filter(post => 
+          !loadedPostIds.current.has(parseInt(post.data.id))
+        );
+        
+        // Add new post IDs to tracking set
+        uniquePosts.forEach(post => loadedPostIds.current.add(parseInt(post.data.id)));
+        
+        console.log(`Adding ${uniquePosts.length} unique posts out of ${newPosts.length} total`);
+        
+        if (uniquePosts.length > 0) {
+          setContent(prevContent => [...prevContent, ...uniquePosts]);
+        }
+        setPage(response.data.current_page + 1);
+      }
+      
+      // Update hasMore based on current page vs last page
+      const newHasMore = response.data.current_page < response.data.last_page;
+      setHasMore(newHasMore);
+      console.log(`hasMore set to: ${newHasMore} (current: ${response.data.current_page}, last: ${response.data.last_page})`);
+      
     } catch (err: any) {
-      setError('Failed to load posts. Please try again.');
       console.error('API Error:', err.response?.data || err.message);
+      setError('Failed to load posts. Please try again.');
     } finally {
-      setIsLoading(false);
+      if (isRefresh) {
+        setIsLoading(false);
+      } else {
+        setIsLoadingMore(false);
+      }
     }
-  };
+  }, [apiClient, isAuthenticated]); // Removed isLoadingMore and hasMore from dependencies
 
-  // Initial fetch
+  // Initial fetch - only once
   useEffect(() => {
-    fetchPosts(1);
-  }, []);
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false;
+      console.log('Initial fetch triggered');
+      fetchPosts(1, true);
+    }
+  }, [fetchPosts]);
 
   // Refresh on refreshKey change
   useEffect(() => {
-    setIsLoading(true); // Show loader during refresh
-    setPage(1);
-    setHasMore(true);
-    fetchPosts(1, true); // Fetch page 1, replace content
-  }, [refreshKey]);
+    if (!isInitialLoad.current) { // Skip if it's the initial load
+      console.log('Refresh triggered by refreshKey change');
+      setPage(1);
+      setHasMore(true);
+      fetchPosts(1, true);
+    }
+  }, [refreshKey, fetchPosts]);
 
-  // Infinite scroll
+  // Infinite scroll handler
   useEffect(() => {
     const handleScroll = () => {
-      if (!containerRef.current || isLoading || !hasMore) return;
+      if (!containerRef.current || isLoadingMore || !hasMore || isLoading) {
+        return;
+      }
+      
       const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-      if (scrollTop + clientHeight >= scrollHeight - 2) {
-        console.log('Fetching more posts...');
+      const threshold = 100;
+      
+      if (scrollTop + clientHeight >= scrollHeight - threshold) {
+        console.log('Scroll threshold reached, fetching more posts...');
         fetchPosts(page);
       }
     };
 
     const container = containerRef.current;
-    container?.addEventListener('scroll', handleScroll);
-    return () => container?.removeEventListener('scroll', handleScroll);
-  }, [page, isLoading, hasMore]);
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [page, isLoadingMore, hasMore, isLoading, fetchPosts]);
 
   // Function to randomly select an ad
   const getRandomAd = (ads: Ad[]): Ad | null => {
@@ -183,15 +246,23 @@ const HomePage = () => {
     }
 
     return content.filter((post) => {
-      const content = post.data.description?.toLowerCase() || '';
+      const postContent = post.data.description?.toLowerCase() || '';
       const authorName = post.data.author?.toLowerCase() || '';
       const topicName = post.data.institution?.toLowerCase() || '';
-
       const query = searchQuery.toLowerCase();
 
-      return content.includes(query) || authorName.includes(query) || topicName.includes(query);
+      return postContent.includes(query) || authorName.includes(query) || topicName.includes(query);
     });
   }, [content, searchQuery]);
+
+  console.log('Render state:', { 
+    isLoading, 
+    isLoadingMore, 
+    hasMore, 
+    contentLength: content.length, 
+    filteredPostsLength: filteredPosts.length,
+    page 
+  });
 
   return (
     <div className="h-full">
@@ -200,7 +271,20 @@ const HomePage = () => {
           ref={containerRef}
           className="flex flex-col gap-5 overflow-y-auto p-10 max-xl:p-8 max-lg:p-6 max-md:p-4 flex-4 max-sm:w-full"
         >
-          {error && <div className="text-red-500 text-center">{error}</div>}
+          {error && (
+            <div className="text-red-500 text-center p-4 bg-red-50 rounded-lg">
+              {error}
+              <button 
+                onClick={() => {
+                  setError(null);
+                  fetchPosts(1, true);
+                }}
+                className="ml-2 text-blue-500 underline"
+              >
+                Retry
+              </button>
+            </div>
+          )}
 
           {searchQuery && (
             <div className="my-3">
@@ -210,33 +294,47 @@ const HomePage = () => {
             </div>
           )}
 
-          {isLoading ? (
-            <div className="w-full h-full flex items-center justify-center">
+          {/* Show initial loader only when loading first time and no content */}
+          {isLoading && content.length === 0 ? (
+            <div className="w-full h-64 flex items-center justify-center">
               <div className="loader"></div>
             </div>
           ) : filteredPosts && filteredPosts.length > 0 ? (
-            filteredPosts.map((item, index) => (
-              <React.Fragment key={index}>
-                <ContentCard {...item.data} />
-                {(index + 1) % 5 === 0 && index < filteredPosts.length - 1 && (
-                  // Randomly select one ad to display every 5 posts
-                  (() => {
-                    const selectedAd = getRandomAd(ads);
-                    return selectedAd ? <Banner ad={selectedAd} /> : null;
-                  })()
-                )}
-              </React.Fragment>
-            ))
+            <>
+              {filteredPosts.map((item, index) => (
+                <React.Fragment key={`post-${item.data.id}-${index}`}>
+                  <ContentCard {...item.data} />
+                  {(index + 1) % 5 === 0 && index < filteredPosts.length - 1 && (
+                    (() => {
+                      const selectedAd = getRandomAd(ads);
+                      return selectedAd ? <Banner key={`ad-${item.data.id}-${index}`} ad={selectedAd} /> : null;
+                    })()
+                  )}
+                </React.Fragment>
+              ))}
+              
+              {/* Show loading more indicator at the bottom */}
+              {isLoadingMore && (
+                <div className="w-full py-4 flex items-center justify-center">
+                  <div className="loader"></div>
+                  <span className="ml-2 text-sm text-gray-500">Loading more posts...</span>
+                </div>
+              )}
+            </>
           ) : (
-            <div className="w-full text-center py-8">
-              <p className="text-gray-500">
-                {searchQuery ? "No posts found matching your search." : "No posts available."}
-              </p>
-            </div>
+            !isLoading && (
+              <div className="w-full text-center py-8">
+                <p className="text-gray-500">
+                  {searchQuery ? "No posts found matching your search." : "No posts available."}
+                </p>
+              </div>
+            )
           )}
 
-          {!hasMore && filteredPosts.length > 0 && (
-            <div className="text-center text-xs font-bold">No more posts to load.</div>
+          {!hasMore && filteredPosts.length > 0 && !isLoadingMore && (
+            <div className="text-center text-xs font-bold py-4">
+              No more posts to load.
+            </div>
           )}
         </div>
 

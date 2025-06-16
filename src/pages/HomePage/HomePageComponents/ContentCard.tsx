@@ -77,6 +77,12 @@ interface Follower {
   };
 }
 
+interface Liker {
+  id: number;
+  user_id: number;
+  post_id: number;
+}
+
 type Props = {
   title: string;
   description: string;
@@ -127,56 +133,68 @@ const ContentCard = (props: Props) => {
   const [alertSeverity, setAlertSeverity] = useState<'success' | 'error' | 'purple'>('success');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  // Fetch initial saved state and followers
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!isAuthenticated || !user?.id) {
-        setSaved(false);
-        setFollowerCount(0);
-        setIsFollowing(false);
-        setIsLoading(false);
-        return;
+// Fetch initial saved state and followers
+useEffect(() => {
+  const fetchData = async () => {
+    if (!isAuthenticated || !user?.id) {
+      setSaved(false);
+      setLiked(false);
+      setFollowerCount(0);
+      setIsFollowing(false);
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const [likersResponse, savedResponse, followersResponse] = await Promise.all([
+        props.id ? apiClient.get(`/post/likes/members/${props.id}`) : Promise.resolve({ data: [] }),
+        props.id ? apiClient.get('/posts/saved') : Promise.resolve({ data: [] }),
+        props.userId ? apiClient.get(`/profile/followers/${props.userId}`) : Promise.resolve({ data: [] }),
+      ]);
+
+      console.log('Likers Response', likersResponse);
+
+      // Handle likes - check if current user has liked the post
+      const likers: Liker[] = likersResponse.data;
+      if (Array.isArray(likers) && props.id) {
+        const userHasLiked = likers.some((liker) => liker.user_id.toString() === user.id.toString());
+        setLiked(userHasLiked);
+      } else {
+        setLiked(false);
       }
 
-      try {
-        const [savedResponse, followersResponse] = await Promise.all([
-          props.id ? apiClient.get('/posts/saved') : Promise.resolve({ data: [] }),
-          props.userId ? apiClient.get(`/profile/followers/${props.userId}`) : Promise.resolve({ data: [] }),
-        ]);
-
-        // Handle saved posts
-        const savedPosts: SavedPost[] = savedResponse.data;
-        if (Array.isArray(savedPosts) && props.id) {
-          const userSavedPosts = savedPosts.filter((post) => post.user_id.toString() === user.id.toString());
-          const isSaved = userSavedPosts.some((post) => post.post_id.toString() === props.id?.toString());
-          setSaved(isSaved);
-        } else {
-          setSaved(false);
-        }
-
-        // Handle followers
-        const followers: Follower[] = followersResponse.data;
-        if (Array.isArray(followers)) {
-          setFollowerCount(followers.length);
-          const isFollowingUser = followers.some((follower) => follower.user_id.toString() === user.id.toString());
-          setIsFollowing(isFollowingUser);
-        } else {
-          setFollowerCount(0);
-          setIsFollowing(false);
-        }
-      } catch (err: any) {
-        console.error('Error fetching data:', err.response?.data || err.message);
+      // Handle saved posts
+      const savedPosts: SavedPost[] = savedResponse.data;
+      if (Array.isArray(savedPosts) && props.id) {
+        const userSavedPosts = savedPosts.filter((post) => post.user_id.toString() === user.id.toString());
+        const isSaved = userSavedPosts.some((post) => post.post_id.toString() === props.id?.toString());
+        setSaved(isSaved);
+      } else {
         setSaved(false);
+      }
+
+      // Handle followers
+      const followers: Follower[] = followersResponse.data;
+      if (Array.isArray(followers)) {
+        setFollowerCount(followers.length);
+        const isFollowingUser = followers.some((follower) => follower.user_id.toString() === user.id.toString());
+        setIsFollowing(isFollowingUser);
+      } else {
         setFollowerCount(0);
         setIsFollowing(false);
-      } finally {
-        setIsLoading(false);
       }
-    };
+    } catch (err: any) {
+      setSaved(false);
+      setLiked(false);
+      setFollowerCount(0);
+      setIsFollowing(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    fetchData();
-  }, [props.id, props.userId, isAuthenticated, user?.id, apiClient]);
-
+  fetchData();
+}, [props.id, props.userId, isAuthenticated, user?.id, apiClient]);
   // Set initial topic based on props.institution
   useEffect(() => {
     if (topics.length > 0 && props.institution) {
@@ -188,7 +206,6 @@ const ContentCard = (props: Props) => {
   // Like/Unlike post
   const toggleLike = async () => {
     if (!isAuthenticated || !user?.id) {
-      console.log('Unauthenticated user attempted to like post, redirecting to /login');
       navigate('/login');
       return;
     }
@@ -201,7 +218,6 @@ const ContentCard = (props: Props) => {
         post_id: props.id,
         user_id: user.id,
       });
-      console.log('POST /posts/like response:', JSON.stringify(response.data, null, 2));
 
       const { status } = response.data;
 
@@ -213,7 +229,6 @@ const ContentCard = (props: Props) => {
         setLikesCount((prev) => prev - 1);
       }
     } catch (err: any) {
-      console.error('Like error:', err.response?.data || err.message);
       setAlertMsg('Failed to like/unlike post. Please try again.');
       setAlertSeverity('error');
       setAlertOpen(true);
@@ -225,7 +240,6 @@ const ContentCard = (props: Props) => {
   // Save/Unsave post
   const toggleSave = async () => {
     if (!isAuthenticated || !user?.id) {
-      console.log('Unauthenticated user attempted to save post, redirecting to /login');
       navigate('/login');
       return;
     }
@@ -238,7 +252,6 @@ const ContentCard = (props: Props) => {
         post_id: props.id,
         user_id: user.id,
       });
-      console.log('POST /posts/save response:', JSON.stringify(response.data, null, 2));
 
       const { status } = response.data;
 
@@ -248,7 +261,6 @@ const ContentCard = (props: Props) => {
         setSaved(false);
       }
     } catch (err: any) {
-      console.error('Save error details:', err.response?.data || err.message);
       setAlertMsg('Failed to save/unsave post. Please try again.');
       setAlertSeverity('error');
       setAlertOpen(true);
@@ -260,7 +272,6 @@ const ContentCard = (props: Props) => {
   // Follow/Unfollow user
   const toggleFollow = async () => {
     if (!isAuthenticated || !user?.id || !props.userId) {
-      console.log('Unauthenticated user attempted to follow user, redirecting to /login');
       navigate('/login');
       return;
     }
@@ -272,7 +283,6 @@ const ContentCard = (props: Props) => {
     setIsFollowingLoading(true);
     try {
       const response = await apiClient.post(`/profile/follow/${props.userId}`);
-      console.log('POST /profile/follow/${props.userId} response:', JSON.stringify(response.data, null, 2));
 
       const { status } = response.data;
 
@@ -284,7 +294,6 @@ const ContentCard = (props: Props) => {
         setFollowerCount((prev) => prev - 1);
       }
     } catch (err: any) {
-      console.error('Follow error:', err.response?.data || err.message);
       setAlertMsg('Failed to follow/unfollow user. Please try again.');
       setAlertSeverity('error');
       setAlertOpen(true);
@@ -295,7 +304,6 @@ const ContentCard = (props: Props) => {
 
   const openFlow = (type: "edit" | "delete") => {
     if (!isAuthenticated || !user?.id) {
-      console.log('Unauthenticated user attempted to open edit/delete modal, redirecting to /login');
       navigate('/login');
       return;
     }
@@ -313,7 +321,6 @@ const ContentCard = (props: Props) => {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!isAuthenticated || !user?.id) {
-      console.log('Unauthenticated user attempted to upload image, redirecting to /login');
       navigate('/login');
       return;
     }
@@ -325,7 +332,6 @@ const ContentCard = (props: Props) => {
 
   const removeImage = (index: number) => {
     if (!isAuthenticated || !user?.id) {
-      console.log('Unauthenticated user attempted to remove image, redirecting to /login');
       navigate('/login');
       return;
     }
@@ -334,7 +340,6 @@ const ContentCard = (props: Props) => {
 
   const handleTopicSelect = (topicId: number) => {
     if (!isAuthenticated || !user?.id) {
-      console.log('Unauthenticated user attempted to select topic, redirecting to /login');
       navigate('/login');
       return;
     }
@@ -344,7 +349,6 @@ const ContentCard = (props: Props) => {
 
   const handleEditPost = async () => {
     if (!isAuthenticated || !user?.id) {
-      console.log('Unauthenticated user attempted to edit post, redirecting to /login');
       navigate('/login');
       return;
     }
@@ -380,16 +384,14 @@ const ContentCard = (props: Props) => {
         formData.append("images[]", image);
       });
 
-      const response = await apiClient.post(`/post/edit/${props.id}`, formData, {
+      await apiClient.post(`/post/edit/${props.id}`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-      console.log('Edit post response:', JSON.stringify(response.data, null, 2));
       triggerRefresh();
       closeModal();
     } catch (err: any) {
-      console.error('Edit post error:', err.response?.data || err.message);
       setAlertMsg(err.response?.data?.error || 'Failed to edit post. Please try again.');
       setAlertSeverity('error');
       setAlertOpen(true);
@@ -399,7 +401,6 @@ const ContentCard = (props: Props) => {
 
   const handleDeletePost = async () => {
     if (!isAuthenticated || !user?.id) {
-      console.log('Unauthenticated user attempted to delete post, redirecting to /login');
       navigate('/login');
       return;
     }
@@ -413,12 +414,10 @@ const ContentCard = (props: Props) => {
 
     setIsSubmitting(true);
     try {
-      const response = await apiClient.delete(`/post/${props.id}`);
-      console.log('Delete post response:', JSON.stringify(response.data, null, 2));
+      await apiClient.delete(`/post/${props.id}`);
       triggerRefresh();
       closeModal();
     } catch (err: any) {
-      console.error('Delete post error:', err.response?.data || err.message);
       setAlertMsg(err.response?.data?.error || 'Failed to delete post. Please try again.');
       setAlertSeverity('error');
       setAlertOpen(true);
@@ -431,7 +430,6 @@ const ContentCard = (props: Props) => {
     const baseUrl = window.location.origin; // e.g., https://yourdomain.com
     const postPath = `/comments/${props.id || 'unknown'}`; // e.g., /post/123
     const fullUrl = `${baseUrl}${postPath}`;
-    console.log('Constructed post URL:', fullUrl);
     return fullUrl;
   };
 
@@ -441,11 +439,9 @@ const ContentCard = (props: Props) => {
     try {
       await navigator.clipboard.writeText(postUrl);
       setIsCopied(true);
-      console.log('Copied post URL:', postUrl);
       await new Promise((res) => setTimeout(res, 2000));
       setIsCopied(false);
     } catch (err) {
-      console.error('Failed to copy post link:', err);
       setAlertMsg('Failed to copy post link');
       setAlertSeverity('error');
       setAlertOpen(true);
@@ -456,7 +452,6 @@ const ContentCard = (props: Props) => {
   const shareOnFacebook = () => {
     const postUrl = getPostUrl();
     const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`;
-    console.log('Sharing on Facebook:', shareUrl);
     window.open(shareUrl, '_blank', 'width=600,height=400');
     setIsShareOpen(false);
   };
@@ -466,7 +461,6 @@ const ContentCard = (props: Props) => {
     const postUrl = getPostUrl();
     const text = encodeURIComponent(`Check out this post: ${props.title}`);
     const shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(postUrl)}&text=${text}`;
-    console.log('Sharing on Twitter:', shareUrl);
     window.open(shareUrl, '_blank', 'width=600,height=400');
     setIsShareOpen(false);
   };
@@ -475,14 +469,12 @@ const ContentCard = (props: Props) => {
   const shareOnInstagram = () => {
     alert('To share on Instagram, copy the link and paste it in your Instagram post or story.');
     handleCopyLink(); // Copy the link for the user
-    console.log('Instagram share initiated (copy link provided)');
   };
 
   // Share on LinkedIn
   const shareOnLinkedIn = () => {
     const postUrl = getPostUrl();
     const shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(postUrl)}`;
-    console.log('Sharing on LinkedIn:', shareUrl);
     window.open(shareUrl, '_blank', 'width=600,height=400');
     setIsShareOpen(false);
   };
@@ -504,7 +496,6 @@ const ContentCard = (props: Props) => {
           <div
             onClick={() => {
               if (!isAuthenticated || !user?.id) {
-                console.log('Unauthenticated user attempted to open topic selector, redirecting to /login');
                 navigate('/login');
                 return;
               }
@@ -522,7 +513,6 @@ const ContentCard = (props: Props) => {
               value={postContent}
               onChange={(e) => {
                 if (!isAuthenticated || !user?.id) {
-                  console.log('Unauthenticated user attempted to edit post content, redirecting to /login');
                   navigate('/login');
                   return;
                 }
@@ -619,7 +609,6 @@ const ContentCard = (props: Props) => {
 
   const toggleRS = async () => {
     if (!isAuthenticated || !user?.id) {
-      console.log('Unauthenticated user attempted to report post, redirecting to /login');
       navigate('/login');
       return;
     }
@@ -634,7 +623,6 @@ const ContentCard = (props: Props) => {
 
   const toggleReportOverlay = () => {
     if (!isAuthenticated || !user?.id) {
-      console.log('Unauthenticated user attempted to open report modal, redirecting to /login');
       navigate('/login');
       return;
     }
@@ -872,7 +860,6 @@ const ContentCard = (props: Props) => {
             <p
               onClick={() => {
                 if (!isAuthenticated || !user?.id) {
-                  console.log('Unauthenticated user attempted to view likes, redirecting to /login');
                   navigate('/login');
                   return;
                 }

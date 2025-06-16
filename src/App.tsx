@@ -211,37 +211,37 @@ const App: React.FC = () => (
                     }
                   />
                   <Route
-  path="/quiz/financial-literacy/start"
-  element={
-    <PrivateRoute>
-      <FinancialLiteracyQuizPage />
-    </PrivateRoute>
-  }
-/>
-<Route
-  path="/super-quiz/financial-literacy/results"
-  element={
-    <PrivateRoute>
-      <FinancialLiteracyQuizResultsPage />
-    </PrivateRoute>
-  }
-/>
-<Route
-  path="/quiz/kickstart-my-biz/start"
-  element={
-    <PrivateRoute>
-      <KickstartMyBizQuizPage />
-    </PrivateRoute>
-  }
-/>
-<Route
-  path="/super-quiz/kickstart-my-biz/results"
-  element={
-    <PrivateRoute>
-      <KickstartMyBizQuizResultsPage />
-    </PrivateRoute>
-  }
-/>
+                    path="/quiz/financial-literacy/start"
+                    element={
+                      <PrivateRoute>
+                        <FinancialLiteracyQuizPage />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/super-quiz/financial-literacy/results"
+                    element={
+                      <PrivateRoute>
+                        <FinancialLiteracyQuizResultsPage />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/quiz/kickstart-my-biz/start"
+                    element={
+                      <PrivateRoute>
+                        <KickstartMyBizQuizPage />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/super-quiz/kickstart-my-biz/results"
+                    element={
+                      <PrivateRoute>
+                        <KickstartMyBizQuizResultsPage />
+                      </PrivateRoute>
+                    }
+                  />
                   <Route
                     path="/settings"
                     element={
@@ -270,13 +270,11 @@ const App: React.FC = () => (
                       </PrivateRoute>
                     }
                   />
-                   <Route
+                  <Route
                     path="/super-quiz/certificate"
                     element={
                       <PrivateRoute>
-                        <Layout>
-                          <CertificatePage />
-                        </Layout>
+                        <CertificatePage />
                       </PrivateRoute>
                     }
                   />
@@ -284,9 +282,7 @@ const App: React.FC = () => (
                     path="/super-quiz/certificate/download"
                     element={
                       <PrivateRoute>
-                        <Layout>
-                          <CertificateDownloadPage />
-                        </Layout>
+                        <CertificateDownloadPage />
                       </PrivateRoute>
                     }
                   />

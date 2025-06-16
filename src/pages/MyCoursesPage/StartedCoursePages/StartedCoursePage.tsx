@@ -245,18 +245,32 @@ const StartedCoursePage: React.FC = () => {
   const [alertSeverity, setAlertSeverity] = useState<'purple' | 'success' | 'error'>('purple');
   const [isActive, setIsActive] = useState(false);
 
-  const { markLessonComplete, markSectionComplete, getLessonStatus, getSectionStatus, getCourseProgress } = useCourseProgress();
+  const { markLessonComplete, markSectionComplete, getLessonStatus, getSectionStatus } = useCourseProgress();
   const courseId = id ? parseInt(id) : 0;
 
   const markSectionCompleteAPI = async (sectionId: number) => {
-    console.log('Calling markSectionCompleteAPI for sectionId:', sectionId);
     try {
-      const response = await apiClient.post(`/course/section/complete/${sectionId}`);
-      console.log('Section marked complete on server:', response.data);
-      return response.data;
+      await apiClient.post(`/course/section/complete/${sectionId}`);
+      markSectionComplete(courseId, sectionId); // Update context after API call
     } catch (err: any) {
       console.error(`Error marking section ${sectionId} complete:`, err.response?.data || err.message);
-      throw err;
+      setAlertMsg('Failed to save section progress.');
+      setAlertSeverity('error');
+      setAlertOpen(true);
+      throw err; // Important: prevent navigation if API fails
+    }
+  };
+
+  const markCourseCompleteAPI = async () => {
+    try {
+      await apiClient.post(`/course/complete/${courseId}`);
+      setAlertMsg('Congratulations! You have completed the course.');
+      setAlertSeverity('success');
+      setAlertOpen(true);
+      sessionStorage.setItem(`course-completed-${courseId}`, 'true');
+      setTimeout(() => navigate('/my-courses'), 2000);
+    } catch (err: any) {
+      console.error(`Error marking course ${courseId} complete:`, err.response?.data || err.message);
     }
   };
 
@@ -284,71 +298,62 @@ const StartedCoursePage: React.FC = () => {
         setIsLoading(false);
         return;
       }
-
       try {
         const response = await apiClient.get<Course>(`/course/${id}`);
-        const progressPercent = getCourseProgress(parseInt(id));
-        const courseData = { ...response.data, completion_percent: progressPercent };
-        setCourse(courseData);
-
-        if (courseData.sections.length > 0) {
-          let foundActiveLesson = false;
-          for (const section of courseData.sections) {
-            const sectionId = `section-${section.id}`;
-            for (let i = 0; i < section.lessons.length; i++) {
-              const lesson = section.lessons[i];
-              if (!getLessonStatus(courseId, section.id, lesson.id)) {
-                setActiveLesson({ sectionId, lessonIndex: i, isQuiz: false });
-                foundActiveLesson = true;
-                break;
-              }
-            }
-            if (foundActiveLesson) break;
-            if (courseData.quiz_settings && !getSectionStatus(courseId, section.id)) {
-              setActiveLesson({ sectionId, lessonIndex: 0, isQuiz: true });
-              foundActiveLesson = true;
-              break;
-            }
-          }
-          if (!foundActiveLesson && courseData.sections[0]?.lessons.length > 0) {
-            setActiveLesson({ sectionId: `section-${courseData.sections[0].id}`, lessonIndex: 0, isQuiz: false });
-          }
-        }
+        setCourse(response.data);
       } catch (err: any) {
-        console.error('Error fetching course:', err.response?.data || err.message);
         setError('Failed to load course');
       } finally {
         setIsLoading(false);
       }
     };
     fetchCourse();
-  }, [id, apiClient, getCourseProgress, getLessonStatus, getSectionStatus]);
+  }, [id, apiClient]);
 
   useEffect(() => {
-    if (!course) {
-      setCourseSections([]);
-      return;
-    }
-    const sections = course.sections.map(section => {
-      const sectionId = section.id;
-      const dropDownItems: CourseLessonItem[] = section.lessons.map(lesson => ({
+    if (!course) return;
+
+    const sections = course.sections.map(section => ({
+      id: `section-${section.id}`,
+      title: section.title,
+      numberOfLessons: section.lessons.length.toString(),
+      totalTime: calculateTotalTime(section.lessons),
+      dropDownItems: section.lessons.map(lesson => ({
         title: lesson.title,
         time: estimateLessonTime(lesson),
-        type: lesson.type === 1 ? 'document' : 'video',
-        isCompleted: getLessonStatus(courseId, sectionId, lesson.id),
-      }));
-      console.log('Section:', section.title, 'Completed:', dropDownItems.every(item => item.isCompleted));
-      return {
-        id: `section-${sectionId}`,
-        title: section.title,
-        numberOfLessons: section.lessons.length.toString(),
-        totalTime: calculateTotalTime(section.lessons),
-        dropDownItems,
-      };
-    });
-    console.log('courseSections:', sections);
+        type: (lesson.type === 1 ? 'document' : 'video') as 'document' | 'video',
+        isCompleted: getLessonStatus(courseId, section.id, lesson.id),
+      })),
+    }));
     setCourseSections(sections);
-  }, [course, courseId, getLessonStatus]);
+
+    // Logic to set the initial active lesson, guarded to run only once.
+    if (activeLesson) return;
+
+    let foundActive = false;
+    for (const section of course.sections) {
+      if (!getSectionStatus(courseId, section.id)) {
+        for (let i = 0; i < section.lessons.length; i++) {
+          if (!getLessonStatus(courseId, section.id, section.lessons[i].id)) {
+            setActiveLesson({ sectionId: `section-${section.id}`, lessonIndex: i, isQuiz: false });
+            foundActive = true;
+            break;
+          }
+        }
+        if (foundActive) break;
+      }
+    }
+
+    if (!foundActive) {
+      if (course.quiz_settings && !getSectionStatus(courseId, course.id)) {
+        setActiveLesson({ sectionId: 'quiz', lessonIndex: 0, isQuiz: true });
+      } else {
+        if (course.sections.length > 0 && course.sections[0].lessons.length > 0) {
+          setActiveLesson({ sectionId: `section-${course.sections[0].id}`, lessonIndex: 0, isQuiz: false });
+        }
+      }
+    }
+  }, [course, courseId, getLessonStatus, getSectionStatus, activeLesson]);
 
   const quizItem: QuizItem | null = course?.quiz_settings
     ? {
@@ -359,90 +364,92 @@ const StartedCoursePage: React.FC = () => {
       }
     : null;
 
-  const handleLessonCompleted = async (sectionId: string, lessonIndex: number, isQuiz: boolean) => {
-    if (!course) return;
-    if (isQuiz) {
-      console.log('Navigating to quiz for courseId:', course.id);
-      navigate(`/quiz/${course.id}`);
-      return;
-    }
+  const handleCompleteAndContinue = async () => {
+    if (!activeLesson || !course) return;
 
-    const sectionIdNumber = parseInt(sectionId.replace('section-', ''));
-    const section = course.sections.find(s => s.id === sectionIdNumber);
-    if (!section) {
-      console.error('Section not found for sectionId:', sectionIdNumber);
-      return;
-    }
+    const { sectionId, lessonIndex } = activeLesson;
+    const currentSection = course.sections.find(s => `section-${s.id}` === sectionId);
+    if (!currentSection) return;
 
-    const lesson = section.lessons[lessonIndex];
-    if (!lesson) {
-      console.error('Lesson not found at index:', lessonIndex);
-      return;
-    }
+    const currentLesson = currentSection.lessons[lessonIndex];
+    markLessonComplete(courseId, currentSection.id, currentLesson.id);
+
+    const isLastLesson = lessonIndex === currentSection.lessons.length - 1;
 
     try {
-      console.log('Marking lesson complete:', { courseId, sectionId: sectionIdNumber, lessonId: lesson.id });
-      markLessonComplete(courseId, sectionIdNumber, lesson.id);
-      setAlertMsg('Lesson completed successfully!');
-      setAlertSeverity('success');
-      setAlertOpen(true);
-
-      const allLessonsComplete = section.lessons.every(l => getLessonStatus(courseId, sectionIdNumber, l.id));
-      console.log('All lessons complete in section:', allLessonsComplete);
-      if (allLessonsComplete && section.lessons.length > 0) {
-        try {
-          await markSectionCompleteAPI(sectionIdNumber);
-          markSectionComplete(courseId, sectionIdNumber);
-          setAlertMsg('Section completed successfully!');
-          setAlertSeverity('success');
-          setAlertOpen(true);
-        } catch (err: any) {
-          console.error('Error marking section complete:', err);
-          setAlertMsg(`Failed to complete section: ${err.response?.data?.message || err.message}`);
-          setAlertSeverity('error');
-          setAlertOpen(true);
-        }
+      if (isLastLesson) {
+        await markSectionCompleteAPI(currentSection.id);
       }
 
-      goToNextLesson();
-    } catch (err: any) {
-      console.error('Error marking lesson complete:', err);
-      setAlertMsg(`Failed to complete lesson: ${err.response?.data?.message || err.message}`);
-      setAlertSeverity('error');
-      setAlertOpen(true);
+      // --- Navigation Logic ---
+      if (!isLastLesson) {
+        setActiveLesson({ ...activeLesson, lessonIndex: lessonIndex + 1 });
+        return;
+      }
+
+      const currentSectionIndex = course.sections.findIndex(s => s.id === currentSection.id);
+      const nextSection = course.sections[currentSectionIndex + 1];
+
+      if (nextSection) {
+        setActiveLesson({ sectionId: `section-${nextSection.id}`, lessonIndex: 0, isQuiz: false });
+      } else if (course.quiz_settings) {
+        setActiveLesson({ sectionId: 'quiz', lessonIndex: 0, isQuiz: true });
+      } else {
+        await markCourseCompleteAPI();
+      }
+    } catch (error) {
+      // Errors from markSectionCompleteAPI are caught here, preventing navigation.
+      console.error('Could not proceed.', error);
     }
   };
 
+  const handleStartQuiz = () => {
+    if (!course) return;
+    navigate(`/quiz/${course.id}`);
+  };
+
   const goToNextLesson = () => {
-    if (!activeLesson) return;
+    if (!activeLesson || !course) return;
     const { sectionId, lessonIndex, isQuiz } = activeLesson;
     if (isQuiz) return;
-    const secIdx = courseSections.findIndex(s => s.id === sectionId);
-    const section = courseSections[secIdx];
-    if (lessonIndex < section.dropDownItems.length - 1) {
-      setActiveLesson({ sectionId, lessonIndex: lessonIndex + 1, isQuiz: false });
-    } else if (secIdx < courseSections.length - 1) {
-      const next = courseSections[secIdx + 1];
-      setActiveLesson({ sectionId: next.id, lessonIndex: 0, isQuiz: false });
-    } else if (course?.quiz_settings) {
+
+    const currentSection = course.sections.find(s => `section-${s.id}` === sectionId);
+    if (!currentSection) return;
+
+    const isLastLesson = lessonIndex === currentSection.lessons.length - 1;
+    if (!isLastLesson) {
+      setActiveLesson({ ...activeLesson, lessonIndex: lessonIndex + 1 });
+      return;
+    }
+
+    const currentSectionIndex = course.sections.findIndex(s => s.id === currentSection.id);
+    const nextSection = course.sections[currentSectionIndex + 1];
+    if (nextSection) {
+      setActiveLesson({ sectionId: `section-${nextSection.id}`, lessonIndex: 0, isQuiz: false });
+    } else if (course.quiz_settings) {
       setActiveLesson({ sectionId: 'quiz', lessonIndex: 0, isQuiz: true });
     }
   };
 
   const goToPreviousLesson = () => {
-    if (!activeLesson) return;
+    if (!activeLesson || !course) return;
     const { sectionId, lessonIndex, isQuiz } = activeLesson;
-    if (isQuiz && course?.quiz_settings) {
-      const lastSection = courseSections[courseSections.length - 1];
-      setActiveLesson({ sectionId: lastSection.id, lessonIndex: lastSection.dropDownItems.length - 1, isQuiz: false });
+
+    if (isQuiz) {
+      const lastSection = course.sections[course.sections.length - 1];
+      setActiveLesson({ sectionId: `section-${lastSection.id}`, lessonIndex: lastSection.lessons.length - 1, isQuiz: false });
       return;
     }
-    const secIdx = courseSections.findIndex(s => s.id === sectionId);
+
     if (lessonIndex > 0) {
-      setActiveLesson({ sectionId, lessonIndex: lessonIndex - 1, isQuiz: false });
-    } else if (secIdx > 0) {
-      const prev = courseSections[secIdx - 1];
-      setActiveLesson({ sectionId: prev.id, lessonIndex: prev.dropDownItems.length - 1, isQuiz: false });
+      setActiveLesson({ ...activeLesson, lessonIndex: lessonIndex - 1 });
+      return;
+    }
+
+    const currentSectionIndex = course.sections.findIndex(s => `section-${s.id}` === sectionId);
+    if (currentSectionIndex > 0) {
+      const prevSection = course.sections[currentSectionIndex - 1];
+      setActiveLesson({ sectionId: `section-${prevSection.id}`, lessonIndex: prevSection.lessons.length - 1, isQuiz: false });
     }
   };
 
@@ -531,7 +538,7 @@ const StartedCoursePage: React.FC = () => {
                 videoUrl={course.sections
                   .flatMap(s => s.lessons)
                   .find(l => l.title === activeLessonData.title)?.video || ''}
-                onComplete={() => handleLessonCompleted(activeLesson!.sectionId, activeLesson!.lessonIndex, false)}
+                onComplete={handleCompleteAndContinue}
                 onPreviousLesson={goToPreviousLesson}
                 onNextLesson={goToNextLesson}
               />
@@ -548,7 +555,7 @@ const StartedCoursePage: React.FC = () => {
                     .flatMap(s => s.lessons)
                     .find(l => l.title === activeLessonData.title)?.file_urls[0] || ''
                 }
-                onComplete={() => handleLessonCompleted(activeLesson!.sectionId, activeLesson!.lessonIndex, false)}
+                onComplete={handleCompleteAndContinue}
                 onPreviousLesson={goToPreviousLesson}
                 onNextLesson={goToNextLesson}
               />
@@ -560,7 +567,7 @@ const StartedCoursePage: React.FC = () => {
                 courseId={course.id}
                 onPreviousLesson={goToPreviousLesson}
                 onNextLesson={goToNextLesson}
-                onStartQuiz={() => handleLessonCompleted('quiz', 0, true)}
+                onStartQuiz={handleStartQuiz}
               />
             )
           ) : (

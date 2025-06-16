@@ -80,8 +80,11 @@ const MyCoursesPage = () => {
   };
 
   // Helper function to determine button text based on course status
-  const getButtonText = (courseStatus: string): string => {
-    switch (courseStatus) {
+  const getButtonText = (course: Course): string => {
+    if (course.course_status === 'in-progress' && course.completion_percent === 0) {
+      return 'Start Course';
+    }
+    switch (course.course_status) {
       case 'in-progress':
         return 'Continue Course';
       case 'completed':
@@ -99,7 +102,7 @@ const MyCoursesPage = () => {
       const categoryMatches = 
         filter === 'All' ? true :
         filter === 'In Progress' ? course.course_status === 'in-progress' :
-        filter === 'Not Started' ? course.course_status === 'not-started' :
+        // filter === 'Not Started' ? course.course_status === 'not-started' :
         filter === 'Completed' ? course.course_status === 'completed' :
         true;
       
@@ -180,12 +183,12 @@ const MyCoursesPage = () => {
               >
                 In Progress
               </p>
-              <p
+              {/* <p
                 className={`text-xs font-bold cursor-pointer ${filter === 'Not Started' ? 'text-[#68049B]' : ''}`}
                 onClick={() => setFilter('Not Started')}
               >
                 Not Started
-              </p>
+              </p> */}
               <p
                 className={`text-xs font-bold cursor-pointer ${filter === 'Completed' ? 'text-[#68049B]' : ''}`}
                 onClick={() => setFilter('Completed')}
@@ -211,7 +214,7 @@ const MyCoursesPage = () => {
     id: course.id,
     title: course.course_title,
     status: course.course_status,
-    buttonText: getButtonText(course.course_status)
+    buttonText: getButtonText(course)
   })));
 
   return (
@@ -234,12 +237,12 @@ const MyCoursesPage = () => {
             >
               In Progress
             </p>
-            <p
+            {/* <p
               className={`text-xs font-bold cursor-pointer ${filter === 'Not Started' ? 'text-[#68049B]' : ''}`}
               onClick={() => setFilter('Not Started')}
             >
               Not Started
-            </p>
+            </p> */}
             <p
               className={`text-xs font-bold cursor-pointer ${filter === 'Completed' ? 'text-[#68049B]' : ''}`}
               onClick={() => setFilter('Completed')}
@@ -272,7 +275,7 @@ const MyCoursesPage = () => {
               tag={course.price === null ? 'Free' : `₦${course.price}`}
               isStyleTwo={true}
               completionPercent={course.completion_percent}
-              buttonText={getButtonText(course.course_status)}
+              buttonText={getButtonText(course)}
             />
           ) : null
         ))}

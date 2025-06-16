@@ -48,6 +48,7 @@ const SuperQuiz: React.FC = () => {
   const [quizStatus, setQuizStatus] = useState<QuizStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [canDownloadSuperCertificate, setCanDownloadSuperCertificate] = useState(false);
 
   useEffect(() => {
     const fetchQuizStatus = async () => {
@@ -68,6 +69,33 @@ const SuperQuiz: React.FC = () => {
     };
 
     fetchQuizStatus();
+
+    const checkCourseCompletion = async () => {
+      try {
+        const response = await apiClient.get<any[]>('/my/courses');
+        const courses = response.data;
+
+        const hasCompletedKMB = courses.some(
+          (course: any) =>
+            course.course_title?.includes('Kickstart My Biz') &&
+            course.course_status === 'completed'
+        );
+
+        const hasCompletedFL = courses.some(
+          (course: any) =>
+            course.course_title?.includes('Financial Literacy') &&
+            course.course_status === 'completed'
+        );
+
+        if (hasCompletedKMB && hasCompletedFL) {
+          setCanDownloadSuperCertificate(true);
+        }
+      } catch (error) {
+        console.error('Failed to check course completion status', error);
+      }
+    };
+
+    checkCourseCompletion();
   }, [apiClient]);
 
   if (loading) {
@@ -144,7 +172,18 @@ const SuperQuiz: React.FC = () => {
             />
           ))}
         </div>
+
       </div>
+      {canDownloadSuperCertificate && (
+            <div className="flex max-w-6xl justify-center mt-20 w-full">
+              <button
+                className="bg-[#68049B] hover:bg-[#54037d] text-white font-bold px-6 py-3 rounded-lg shadow-lg w-full md:w-auto"
+                onClick={() => navigate('/super-quiz/certificate')}
+              >
+                Download Super Certificate
+              </button>
+            </div>
+          )}
     </div>
   );
 };
