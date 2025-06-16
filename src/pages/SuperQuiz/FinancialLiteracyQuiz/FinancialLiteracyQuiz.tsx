@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext/AuthContext";
+import flq from "../../../assets/flq.png";
 
 const FinancialLiteracyQuiz: React.FC = () => {
   const navigate = useNavigate();
@@ -86,7 +87,7 @@ const FinancialLiteracyQuiz: React.FC = () => {
       {/* Right: Image Placeholder */}
       <div className="flex-1 flex items-center justify-center">
         <div className="w-full max-w-[420px] h-[320px] md:h-[420px] bg-[#F3E9DF] rounded-md flex items-center justify-center">
-          <span className="text-gray-400 text-xl">Financial Literacy Image</span>
+          <img src={flq} className="w-full h-full object-cover" alt="" />
         </div>
       </div>
     </div>

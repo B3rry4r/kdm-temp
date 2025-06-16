@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext/AuthContext";
+import flq from "../../assets/flq.png";
+import kmb from "../../assets/kmb.png";
 
 interface QuizStatus {
   has_taken_fl: boolean;
@@ -31,7 +33,7 @@ const QuizCard: React.FC<QuizCardProps> = ({ title, description, attempts, imgAl
   >
     <div className="flex items-center justify-center p-4 pb-0">
       <div className="w-full h-[210px] bg-[#F3E9DF] rounded-sm flex items-center justify-center">
-        <span className="text-gray-400 text-xl">{imgAlt}</span>
+        <img src={imgAlt} alt={title} className="w-full h-full object-contain" />
       </div>
     </div>
     <div className="px-4 pb-6 pt-2 flex flex-col gap-2">
@@ -123,7 +125,7 @@ const SuperQuiz: React.FC = () => {
       title: 'Financial Literacy Quiz',
       description: 'Unlock Your Financial Potential with the Kudimata Financial Literacy Quiz!',
       attempts: `Attempts left this month: ${flAttemptsLeft < 0 ? 0 : flAttemptsLeft}/20`,
-      imgAlt: 'Financial Literacy Image',
+      imgAlt: flq,
       disabled: flAttemptsLeft <= 0 && quizStatus?.has_taken_fl,
       onClick: () => {
         if (flAttemptsLeft <= 0 && quizStatus?.has_taken_fl) {
@@ -138,7 +140,7 @@ const SuperQuiz: React.FC = () => {
       title: 'Kickstart My Biz Quiz',
       description: 'Discover the perfect next step for your entrepreneurial journey',
       attempts: `Attempts left this month: ${kmbAttemptsLeft < 0 ? 0 : kmbAttemptsLeft}/20`,
-      imgAlt: 'Biz Quiz Image',
+      imgAlt: kmb,
       disabled: !quizStatus?.eligible_for_kmb,
       onClick: () => {
         if (quizStatus?.eligible_for_kmb) {

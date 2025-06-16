@@ -9,6 +9,7 @@ import {
   TopicSVG,
   InstitutionSVG,
   // MessageSVG,
+  TakeQuizSVG,
   CoursesSVG,
   SpeatToAnAdvisorSVG,
 } from "../../assets/icons/icons";
@@ -66,8 +67,8 @@ const LeftNavBar = () => {
       ],
     },
     {
-      title: "Super Quiz",
-      icon: CoursesSVG,
+      title: "Quiz",
+      icon: TakeQuizSVG,
       link: "/super-quiz",
     },
     {
