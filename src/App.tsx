@@ -36,6 +36,8 @@ import FinancialLiteracyQuizPage from "./pages/SuperQuiz/FinancialLiteracyQuiz/F
 import KickstartMyBizQuizPage from "./pages/SuperQuiz/KickstartMyBizQuiz/KickstartMyBizQuizPage";
 import FinancialLiteracyQuizResultsPage from "./pages/SuperQuiz/FinancialLiteracyQuiz/FinancialLiteracyQuizResultsPage";
 import KickstartMyBizQuizResultsPage from "./pages/SuperQuiz/KickstartMyBizQuiz/KickstartMyBizQuizResultsPage";
+import CertificateDownloadPage from "./pages/SuperQuiz/Certificate/CertificateDownloadPage";
+import CertificatePage from "./pages/SuperQuiz/Certificate/CertificatePage";
 
 const App: React.FC = () => (
   <Router>
@@ -265,6 +267,26 @@ const App: React.FC = () => (
                     element={
                       <PrivateRoute>
                         <StartedCoursePage />
+                      </PrivateRoute>
+                    }
+                  />
+                   <Route
+                    path="/super-quiz/certificate"
+                    element={
+                      <PrivateRoute>
+                        <Layout>
+                          <CertificatePage />
+                        </Layout>
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/super-quiz/certificate/download"
+                    element={
+                      <PrivateRoute>
+                        <Layout>
+                          <CertificateDownloadPage />
+                        </Layout>
                       </PrivateRoute>
                     }
                   />

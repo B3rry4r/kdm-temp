@@ -1,8 +1,56 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../context/AuthContext/AuthContext";
 
 const FinancialLiteracyQuiz: React.FC = () => {
   const navigate = useNavigate();
+  const { apiClient } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const response = await apiClient.post('/quiz/check', { type: 1 });
+        const { fl_tries, has_taken_fl, token } = response.data;
+
+        if (token) {
+          localStorage.setItem('kudimata_quiz_token', token);
+        } else {
+          localStorage.removeItem('kudimata_quiz_token');
+        }
+
+        if (has_taken_fl && (fl_tries || 0) >= 20) {
+          navigate('/super-quiz/financial-literacy/results');
+          return;
+        }
+        setLoading(false);
+      } catch (err) {
+        setError("Failed to verify quiz eligibility.");
+        setLoading(false);
+        console.error(err);
+      }
+    };
+
+    checkStatus();
+  }, [apiClient, navigate]);
+
+  if (loading) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="loader" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <p className="text-red-500 text-xs">{error}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full h-full flex flex-col md:flex-row items-center justify-between gap-8 p-4 md:p-12">
       {/* Left: Text Content */}

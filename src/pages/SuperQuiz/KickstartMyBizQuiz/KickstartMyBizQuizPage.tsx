@@ -48,7 +48,7 @@ const QuestionComponent: React.FC<QuestionComponentProps> = ({
   onSelect,
 }) => (
   <div className="py-6 max-lg:px-4">
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+    <div className="grid grid-cols-1 gap-4 mt-6">
       <div className="font-bold">
         {index + 1}. {question.text}
       </div>
@@ -131,7 +131,17 @@ const KickstartMyBizQuizPage: React.FC = () => {
       setError(null);
       try {
         // Expecting API to return array of { id, question, options (array), correctAnswer }
-        const questionsResponse = await apiClient.get("/quiz/get/fl"); // TODO: Update endpoint if different for Kickstart My Biz
+        const token = localStorage.getItem('kudimata_quiz_token');
+        if (!token) {
+          setError('Quiz token not found. Please go back and try again.');
+          setLoading(false);
+          return;
+        }
+        const questionsResponse = await apiClient.get("/quiz/get/kmb", {
+          headers: {
+            'Token': token
+          }
+        });
         const fetchedQuestions: QuizQuestion[] = questionsResponse.data;
         // Parse according to provided quiz JSON
         const formattedQuestions: Question[] = fetchedQuestions.map((q: any) => {

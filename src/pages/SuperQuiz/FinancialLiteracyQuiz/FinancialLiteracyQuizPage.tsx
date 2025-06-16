@@ -48,7 +48,7 @@ const QuestionComponent: React.FC<QuestionComponentProps> = ({
   onSelect,
 }) => (
   <div className="py-6 max-lg:px-4">
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+    <div className="grid grid-cols-1 gap-4 mt-6">
       <div className="font-bold">
         {index + 1}. {question.text}
       </div>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
-// import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Modal from '../../Registration/Modal';
+import { useAuth } from "../../../context/AuthContext/AuthContext";
+import AlertMessage from "../../../components/AlertMessage";
 
 // Match QuizResultsPage types
 interface Option {
@@ -15,7 +17,8 @@ interface Question {
 }
 
 const KickstartMyBizQuizResultsPage: React.FC = () => {
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
+  const { apiClient } = useAuth();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, number | null>>({});
   const [loading, setLoading] = useState(true);
@@ -77,17 +80,47 @@ const KickstartMyBizQuizResultsPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [participantType, setParticipantType] = useState<'institution' | 'individual'>('institution');
   const [institutionCode, setInstitutionCode] = useState('');
-  // const [modalStep, setModalStep] = useState(0);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
+
   const handleOpenModal = () => {
     setIsModalOpen(true);
-    // setModalStep(0);
     setParticipantType('institution');
     setInstitutionCode('');
+    setModalError(null);
   };
   const handleCloseModal = () => setIsModalOpen(false);
-  const handleDownload = () => {
-    // TODO: Implement actual certificate download logic
-    setIsModalOpen(false);
+
+  const handleDownload = async () => {
+    if (participantType === 'individual') {
+      navigate('/super-quiz/certificate');
+      return;
+    }
+
+    if (participantType === 'institution') {
+      if (!institutionCode.trim()) {
+        setModalError('Please enter an institution code.');
+        return;
+      }
+      setModalLoading(true);
+      setModalError(null);
+      try {
+        const response = await apiClient.post('/quiz/access', {
+          type: 1, // 1 for Institution Code Verification
+          code: institutionCode,
+          status: 1,
+          amount: 0,
+        });
+        localStorage.setItem('certificate_url', response.data.certificate_url);
+        localStorage.setItem('quiz_type', 'kickstart-my-biz');
+        navigate('/super-quiz/certificate/download');
+      } catch (err: any) {
+        const errorMsg = err.response?.data?.message || 'Invalid institution code. Please check and try again.';
+        setModalError(errorMsg);
+      } finally {
+        setModalLoading(false);
+      }
+    }
   };
 
   // --- Handler function ---
@@ -168,8 +201,9 @@ const KickstartMyBizQuizResultsPage: React.FC = () => {
       )}
       {/* Participant Type Modal for certificate download */}
       <Modal isOpen={isModalOpen} onClose={handleCloseModal} width="w-full max-w-md">
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4">
           <h2 className="text-lg font-bold">Select participant type</h2>
+          {modalError && <AlertMessage message={modalError} open={true} onClose={() => setModalError(null)} />}
           <div className="flex flex-col md:flex-row gap-4">
             <button
               className={`flex-1 border rounded-lg py-4 px-2 flex flex-col items-center ${participantType === 'institution' ? 'border-[#68049B] bg-[#F8F4FF]' : 'border-gray-200 bg-white'}`}
@@ -204,10 +238,12 @@ const KickstartMyBizQuizResultsPage: React.FC = () => {
               onClick={handleCloseModal}
             >Go back</button>
             <button
-              className="flex-1 py-2 rounded bg-[#FFD600] text-black font-bold disabled:opacity-50"
+              className="flex-1 py-2 rounded bg-[#FFD600] text-black font-bold disabled:opacity-50 flex items-center justify-center"
               onClick={handleDownload}
-              disabled={participantType === 'institution' && institutionCode.trim() === ''}
-            >Download</button>
+              disabled={(participantType === 'institution' && institutionCode.trim() === '') || modalLoading}
+            >
+              {modalLoading ? <div className="loader-small"></div> : 'Download'}
+            </button>
           </div>
         </div>
       </Modal>
