@@ -38,6 +38,7 @@ import FinancialLiteracyQuizResultsPage from "./pages/SuperQuiz/FinancialLiterac
 import KickstartMyBizQuizResultsPage from "./pages/SuperQuiz/KickstartMyBizQuiz/KickstartMyBizQuizResultsPage";
 import CertificateDownloadPage from "./pages/SuperQuiz/Certificate/CertificateDownloadPage";
 import CertificatePage from "./pages/SuperQuiz/Certificate/CertificatePage";
+import CacRegistration from "./pages/cac-registration/CacRegistration";
 
 const App: React.FC = () => (
   <Router>
@@ -239,6 +240,14 @@ const App: React.FC = () => (
                     element={
                       <PrivateRoute>
                         <KickstartMyBizQuizResultsPage />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/cac-registration"
+                    element={
+                      <PrivateRoute>
+                        <CacRegistration />
                       </PrivateRoute>
                     }
                   />
