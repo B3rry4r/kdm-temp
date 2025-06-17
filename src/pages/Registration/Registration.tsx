@@ -643,7 +643,7 @@ const Registration: React.FC<Props> = () => {
             </div>
           </div>
           <div className="w-[50%] max-sm:w-full max-sm:h-[50%] relative px-6 overflow-hidden rounded-2xl gap-3 bg-gray-100 flex items-center">
-            <img src={kids} className="w-[100px]" alt="coming soon" />
+            <img src={kids} className="w-[100px] opacity-70" alt="coming soon" />
             <div className="flex py-4 flex-col opacity-50 gap-1">
               <h1 className="font-bold text-sm">Kids Corner</h1>
               <p className="text-xs">Coming Soon</p>
