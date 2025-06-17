@@ -3,7 +3,7 @@ import { ForwardArrowSVG } from '../../assets/icons/icons';
 import logo from '../../assets/logo_kdm.png';
 import onb from '../../assets/onb.png';
 import corp from '../../assets/corp.png';
-import kids from '../../assets/kids.png';
+import kids from '../../assets/kc.png';
 import Modal from './Modal';
 import { useAuth } from '../../context/AuthContext/AuthContext';
 import AlertMessage from '../../components/AlertMessage';
