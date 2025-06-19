@@ -68,8 +68,8 @@ interface CourseSectionOverview {
 }
 
 const MySingleCourse = () => {
-  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { apiClient, user: authUser } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -120,12 +120,25 @@ const MySingleCourse = () => {
     fetchCourse();
   }, [apiClient, id, getCourseProgress]);
 
-  const handleEnrollClick = () => {
-    navigate('/my-courses');
-  };
+
 
   const handleStartCourse = () => {
     navigate(`/started-course/${id}`);
+  };
+
+  const getButtonText = (completionPercent: number): string => {
+    if (completionPercent === 0) {
+      return 'Start Course';
+    }
+    if (completionPercent > 0 && completionPercent < 100) {
+      return 'Continue Course';
+    }
+    return 'View Course';
+  };
+
+  const handlePayForCertificate = () => {
+    // Will be implemented later
+    console.log('Pay for certificate clicked');
   };
 
   // Helper to estimate lesson time (since API doesn't provide it)
@@ -186,7 +199,7 @@ const MySingleCourse = () => {
   return (
     <div className='flex overflow-y-auto flex-col max-lg:p-6 max-sm:p-4 p-10 h-full w-full'>
       <div
-        onClick={handleEnrollClick}
+        onClick={() => navigate(-1)}
         className='cursor-pointer w-10 min-h-10 rotate-180 bg-gray-300 rounded-full flex items-center justify-center'
       >
         <ForwardArrowSVG size={13} />
@@ -194,12 +207,12 @@ const MySingleCourse = () => {
       <div className='w-full mt-7 items-center flex flex-col'>
         <div className='w-[80%] max-lg:w-full max-lg:p-0 max-sm:w-full flex flex-col gap-2 max-sm:p-4 p-10'>
           <h1 className='text-2xl mb-4 max-sm:mb-0 font-bold'>Welcome {authUser?.firstname || 'User'}</h1>
-          <h1 className='text-xl my-5 font-bold'>Continue Course</h1>
+          <h1 className='text-xl my-5 font-bold'>{getButtonText(course.completion_percent || 0)}</h1>
           <div className='w-full min-h-60 max-sm:min-h-100 mb-5 p-5 max-sm:flex-col flex rounded-lg bg-white'>
             <div className='w-[40%] h-[100%] max-sm:w-full max-sm:h-[50%] overflow-hidden flex rounded-lg bg-gray-200'>
               <img src={course.image} alt={course.title} className='w-full h-full object-cover rounded-lg' />
             </div>
-            <div className='w-[60%] h-full max-sm:w-full max-sm:h-[50%] p-5 flex flex-col gap-4'>
+            <div className='w-[60%] h-full max-sm:w-full max-sm:h-[50%] p-5 flex flex-col justify-between gap-4'>
               <h1 className='text-xl my-5 max-sm:my-2 font-bold'>{course.title}</h1>
               <div className='flex flex-col gap-1'>
                 <div className='w-full rounded-2xl h-1 bg-gray-300'>
@@ -208,16 +221,27 @@ const MySingleCourse = () => {
                     style={{ width: `${course.completion_percent || 0}%` }}
                   ></div>
                 </div>
-                <p className='text-xs'>{course.completion_percent || 0}% complete</p>
+                <p className='text-xs text-gray-400'>{course.completion_percent || 0}% Completed</p>
               </div>
-              <button
-                onClick={handleStartCourse}
-                className='py-3 w-30 px-4 bg-[#FFD30F] cursor-pointer rounded-lg font-bold text-xs'
-              >
-                Start Course
-              </button>
+              <div className='w-full flex flex-col sm:flex-row gap-3'>
+                <button
+                  onClick={handleStartCourse}
+                  className='w-full sm:w-auto flex-grow bg-[#FFD30F] cursor-pointer rounded-lg font-bold text-xs px-4 py-3'
+                >
+                  {getButtonText(course.completion_percent || 0)}
+                </button>
+                {course.completion_percent === 100 && (
+                  <button
+                    onClick={handlePayForCertificate}
+                    className='w-full sm:w-auto flex-grow bg-[#68049B] text-white rounded-lg font-bold text-xs px-4 py-3'
+                  >
+                    Pay for Certificate
+                  </button>
+                )}
+              </div>
             </div>
           </div>
+
           <div className='w-full mt-5 flex flex-col gap-2'>
             <h1 className='text-xl font-bold'>Course Curriculum</h1>
             <div className='flex items-center justify-between'>
