@@ -68,8 +68,8 @@ interface CourseSectionOverview {
 }
 
 const MySingleCourse = () => {
-  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const { apiClient, user: authUser } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(true);
