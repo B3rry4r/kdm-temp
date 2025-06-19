@@ -129,10 +129,11 @@ const CacRegistration: React.FC = () => {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen py-12 px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-10">
-            <h1 className="text-4xl font-extrabold text-gray-900">CAC Registration</h1>
-            <p className="mt-4 text-lg text-gray-600">Ensure you are registered on the Kudimata app before you proceed with the business name registration</p>
+    <div className="h-full overflow-x-scroll pr-12 py-12 px-4 sm:px-6 lg:px-8">
+      <div className='max-w-xl'>
+      <div className="mb-10">
+            <h1 className="text-2xl font-bold text-gray-900">Business Name Registration</h1>
+            <p className="mt-4 text-md text-gray-600">Ensure you are registered on the Kudimata app before you proceed with the business name registration</p>
         </div>
 
       <CacStepper currentStep={currentStep} />
@@ -141,6 +142,7 @@ const CacRegistration: React.FC = () => {
         {currentStep === 1 && <Step1Verification onContinue={handleContinue} updateFormData={updateFormData} formData={formData} />}
         {currentStep === 2 && <Step2CompanyInfo onContinue={handleContinue} onBack={handleBack} updateFormData={updateFormData} formData={formData} />}
         {currentStep === 3 && <Step3PersonalInfo onSubmit={handleSubmit} onBack={handleBack} updateFormData={updateFormData} formData={formData} isSubmitting={isSubmitting} />}
+      </div>
       </div>
     </div>
   );

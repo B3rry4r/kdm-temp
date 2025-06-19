@@ -71,7 +71,7 @@ const CertificatePage: React.FC = () => {
           <button
             onClick={() => setActiveTab('payment')}
             className={`flex-1 py-2 px-4 font-semibold text-center transition-colors duration-300 ${activeTab === 'payment' ? 'border-b-2 border-[#68049B] text-[#68049B]' : 'text-gray-500 hover:text-gray-700'}`}>
-            Pay with Card
+            Pay
           </button>
           <button
             onClick={() => setActiveTab('institution')}
@@ -88,7 +88,7 @@ const CertificatePage: React.FC = () => {
               disabled={loading}
               className="w-full bg-[#FFD600] hover:bg-[#FFB800] text-black font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center disabled:opacity-50"
             >
-              {loading ? <div className="loader-small"></div> : 'Proceed to Payment'}
+              {loading ? <div className="loader"></div> : 'Proceed to Payment'}
             </button>
           </div>
         ) : (
@@ -106,7 +106,7 @@ const CertificatePage: React.FC = () => {
               disabled={loading}
               className="w-full bg-[#FFD600] hover:bg-[#FFB800] text-black font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center disabled:opacity-50"
             >
-              {loading ? <div className="loader-small"></div> : 'Get Certificate'}
+              {loading ? <div className="loader"></div> : 'Get Certificate'}
             </button>
           </div>
         )}

@@ -34,7 +34,7 @@ const Step3PersonalInfo: React.FC<Step3PersonalInfoProps> = ({ onSubmit, onBack,
   return (
     <div className="w-full max-w-2xl mx-auto">
       <h2 className="text-2xl font-bold text-center mb-4">Tell us about yourself</h2>
-      <div className="bg-white p-8 rounded-lg shadow-sm">
+      <div className="p-8">
         <InputField label="State code" name="state_code" value={formData.state_code} onChange={handleChange} placeholder="Enter code code" />
         <InputField label="Surname" name="surname_of_prop" value={formData.surname_of_prop} onChange={handleChange} placeholder="Enter surname" />
         <InputField label="First Name" name="first_name_of_prop" value={formData.first_name_of_prop} onChange={handleChange} placeholder="Enter first name" />

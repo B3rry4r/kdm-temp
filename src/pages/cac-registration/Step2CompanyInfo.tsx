@@ -33,7 +33,7 @@ const Step2CompanyInfo: React.FC<Step2CompanyInfoProps> = ({ onContinue, onBack,
   return (
     <div className="w-full max-w-2xl mx-auto">
       <h2 className="text-2xl font-bold text-center mb-4">Tell us about your company</h2>
-      <div className="bg-white p-8 rounded-lg shadow-sm">
+      <div className="p-8">
         <InputField label="Primary company name" name="p_company_name_one" value={formData.p_company_name_one} onChange={handleChange} placeholder="Enter company name" />
         <InputField label="Secondary company name" name="p_company_name_two" value={formData.p_company_name_two} onChange={handleChange} placeholder="Enter company name" optional />
         <InputField label="Tertiary company name" name="p_company_name_three" value={formData.p_company_name_three} onChange={handleChange} placeholder="Enter company name" optional />

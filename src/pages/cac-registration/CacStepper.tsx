@@ -12,11 +12,11 @@ const CacStepper: React.FC<StepperProps> = ({ currentStep }) => {
   ];
 
   return (
-    <div className="flex items-center justify-center w-full max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="flex items-center justify-center w-full max-w-2xl px-4 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between w-full">
         {steps.map((step, index) => (
           <React.Fragment key={step.number}>
-            <div className="flex flex-col items-center text-center">
+            <div className="flex flex-col items-start">
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-white mb-2 ${currentStep >= step.number ? 'bg-purple-600' : 'bg-gray-300'}`}>
                 {currentStep > step.number ? (

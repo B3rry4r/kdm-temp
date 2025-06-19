@@ -12,6 +12,7 @@ import {
   TakeQuizSVG,
   CoursesSVG,
   SpeatToAnAdvisorSVG,
+  CacSVG,
 } from "../../assets/icons/icons";
 import SingleNavComponent from "./components/SingleNavComponent";
 import { useData } from "../../context/DataContext/DataContext";
@@ -70,6 +71,11 @@ const LeftNavBar = () => {
       title: "Quiz",
       icon: TakeQuizSVG,
       link: "/super-quiz",
+    },
+    {
+      title: "Business Name Registration",
+      icon: CacSVG,
+      link: "/cac-registration",
     },
     {
       title: "Speak To An Advisor",

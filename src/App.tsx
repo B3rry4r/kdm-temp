@@ -247,7 +247,9 @@ const App: React.FC = () => (
                     path="/cac-registration"
                     element={
                       <PrivateRoute>
-                        <CacRegistration />
+                        <Layout>
+                          <CacRegistration />
+                        </Layout>
                       </PrivateRoute>
                     }
                   />

@@ -138,6 +138,21 @@ const QuizPage: React.FC = () => {
       });
       console.log("Quiz submitted successfully");
 
+      if(score < 80 ) {
+        
+    try {
+      await apiClient.post(`/course/complete/${courseId}`);
+      setAlertMsg('Congratulations! You have completed the course.');
+      setAlertSeverity('success');
+      setAlertOpen(true);
+      sessionStorage.setItem(`course-completed-${courseId}`, 'true');
+      // setTimeout(() => navigate('/my-courses'), 2000);
+    } catch (err: any) {
+      console.error(`Error marking course ${courseId} complete:`, err.response?.data || err.message);
+    }
+
+      }
+
       try {
         localStorage.setItem(`quiz-final-answers-${courseId}`, JSON.stringify(answers));
         console.log(`Stored answers in localStorage: quiz-final-answers-${courseId}`);

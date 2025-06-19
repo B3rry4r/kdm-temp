@@ -76,11 +76,6 @@ const Header = () => {
     navigate(`/refer`);
   };
 
-  const navToCac = () => {
-    setIsUserOpen(false);
-    navigate(`/cac-registration`);
-  };
-
   const getInitials = () => {
     if (!user) return "??";
     const firstInitial = user.firstname ? user.firstname.charAt(0).toUpperCase() : "";
@@ -346,11 +341,6 @@ const Header = () => {
               <div className="flex flex-col gap-3 border-b border-gray-200 max-lg:px-6 max-md:px-4 px-10 py-6 justify-between">
                 <p onClick={navToRefer} className="cursor-pointer py-0 px-2 text-xs font-bold">
                   Refer a friend
-                </p>
-              </div>
-              <div className="flex flex-col gap-3 border-b border-gray-200 max-lg:px-6 max-md:px-4 px-10 py-6 justify-between">
-                <p onClick={navToCac} className="cursor-pointer py-0 px-2 text-xs font-bold">
-                  CAC Registration
                 </p>
               </div>
               <div onClick={logout} className="py-5 max-lg:px-6 max-md:px-4 px-10 cursor-pointer">

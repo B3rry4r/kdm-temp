@@ -261,19 +261,6 @@ const StartedCoursePage: React.FC = () => {
     }
   };
 
-  const markCourseCompleteAPI = async () => {
-    try {
-      await apiClient.post(`/course/complete/${courseId}`);
-      setAlertMsg('Congratulations! You have completed the course.');
-      setAlertSeverity('success');
-      setAlertOpen(true);
-      sessionStorage.setItem(`course-completed-${courseId}`, 'true');
-      setTimeout(() => navigate('/my-courses'), 2000);
-    } catch (err: any) {
-      console.error(`Error marking course ${courseId} complete:`, err.response?.data || err.message);
-    }
-  };
-
   const estimateLessonTime = (lesson: Lesson): string => {
     if (lesson.type === 1) return '15mins';
     if (lesson.video !== '-') return '30mins';
@@ -395,7 +382,7 @@ const StartedCoursePage: React.FC = () => {
       } else if (course.quiz_settings) {
         setActiveLesson({ sectionId: 'quiz', lessonIndex: 0, isQuiz: true });
       } else {
-        await markCourseCompleteAPI();
+        // await markCourseCompleteAPI();
       }
     } catch (error) {
       // Errors from markSectionCompleteAPI are caught here, preventing navigation.
