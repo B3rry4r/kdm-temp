@@ -1,13 +1,65 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext/AuthContext';
 import AlertMessage from '../../../components/AlertMessage';
 
 const CertificatePage: React.FC = () => {
   const { apiClient } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<'payment' | 'institution'>('payment');
   const [institutionCode, setInstitutionCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const status = params.get('status');
+    const tx_ref = params.get('tx_ref');
+
+    if (status && tx_ref) {
+      verifyPayment(status, tx_ref);
+    }
+  }, [location.search]);
+
+  const verifyPayment = async (flutterwaveStatus: string, tx_ref: string) => {
+    setIsVerifying(true);
+    setLoading(true);
+    setError(null);
+
+    // If payment was not successful from Flutterwave's side, don't call the backend.
+    if (flutterwaveStatus.toLowerCase() !== 'successful' && flutterwaveStatus.toLowerCase() !== 'completed') {
+      setError('Payment was not successful. Please try again.');
+      setLoading(false);
+      setIsVerifying(false);
+      return;
+    }
+
+    try {
+      const response = await apiClient.post('/quiz/access', {
+        type: 2, // Super Quiz Certificate payment verification
+        status: 1, // 1 for paid
+        tx_ref: tx_ref,
+      });
+
+      console.log(response.data);
+
+      if (response.data.success || response.status === 200) {
+        localStorage.setItem('can_access_certificate', 'true');
+        navigate('/super-quiz/certificate/download');
+      } else {
+        setError(response.data.message || 'Payment verification failed. Please contact support.');
+        setLoading(false);
+        setIsVerifying(false);
+      }
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || 'An error occurred during payment verification.';
+      setError(errorMsg);
+      setLoading(false);
+      setIsVerifying(false);
+    }
+  };
 
   const handlePayment = async () => {
     setLoading(true);
@@ -16,7 +68,7 @@ const CertificatePage: React.FC = () => {
       const response = await apiClient.post('/quiz/access/pay', {
         amount: 2500,
         type: 2, // Quiz payment
-        redirect_url: `${window.location.origin}/super-quiz/certificate/download`,
+        redirect_url: `${window.location.origin}/super-quiz/certificate`,
       });
       if (response.data.link) {
         window.location.href = response.data.link;
@@ -45,10 +97,9 @@ const CertificatePage: React.FC = () => {
         status: 1,
         amount: 0,
       });
-      if (response.data.certificate_url) {
-        localStorage.setItem('certificate_url', response.data.certificate_url);
-        localStorage.setItem('quiz_type', 'super-quiz');
-        window.location.href = '/super-quiz/certificate/download';
+      if (response.data.success || response.status === 200) {
+        localStorage.setItem('can_access_certificate', 'true');
+        navigate('/super-quiz/certificate/download');
       } else {
         setError('Invalid institution code or an error occurred.');
         setLoading(false);
@@ -59,6 +110,26 @@ const CertificatePage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  if (isVerifying) {
+    return (
+      <div className="w-full h-full overflow-y-auto py-15 bg-[#FFFEF6] flex items-center justify-center">
+        <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-lg text-center">
+          <h1 className="text-2xl font-bold mb-4">Verifying Payment...</h1>
+          {error ? (
+            <AlertMessage message={error} open={!!error} onClose={() => {
+              setError(null);
+              setIsVerifying(false);
+              // Clear URL params to avoid re-triggering
+              navigate(location.pathname, { replace: true });
+            }} />
+          ) : (
+            <div className="loader"></div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full overflow-y-auto py-15 bg-[#FFFEF6] flex items-center justify-center">

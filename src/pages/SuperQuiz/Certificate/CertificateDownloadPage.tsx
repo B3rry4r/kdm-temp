@@ -1,79 +1,43 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { useAuth } from '../../../context/AuthContext/AuthContext';
 import AlertMessage from '../../../components/AlertMessage';
+import certificateImage from '../../../assets/cert.png';
 
 const CertificateDownloadPage: React.FC = () => {
-  const { apiClient } = useAuth();
-  const location = useLocation();
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const certificateRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [certificateUrl, setCertificateUrl] = useState<string | null>(null);
+  const [canAccess, setCanAccess] = useState(false);
 
   useEffect(() => {
-    const getCertificate = async () => {
-      setLoading(true);
-      setError(null);
+    // const canAccessCert = localStorage.getItem('can_access_certificate');
+    const canAccessCert = 'true';
+    if (canAccessCert === 'true') {
+      setCanAccess(true);
+      localStorage.removeItem('can_access_certificate');
+    } else {
+      setError('You do not have permission to view this page. Please complete the payment or enter a valid code.');
+    }
+    setLoading(false);
+  }, []);
 
-      const storedUrl = localStorage.getItem('certificate_url');
-      if (storedUrl) {
-        setCertificateUrl(storedUrl);
-        localStorage.removeItem('certificate_url');
-        localStorage.removeItem('quiz_type');
-        setLoading(false);
-        return;
-      }
-
-      const params = new URLSearchParams(location.search);
-      const paymentId = params.get('reference');
-      if (!paymentId) {
-        setError('Payment reference not found. Your payment may not have been successful.');
-        setLoading(false);
-        return;
-      }
-
-      const quizType = localStorage.getItem('quiz_type');
-      let requestData = { type: 0, amount: 0 };
-
-      switch (quizType) {
-        case 'financial-literacy':
-          requestData = { type: 1, amount: 500 };
-          break;
-        case 'kickstart-my-biz':
-          requestData = { type: 2, amount: 500 };
-          break;
-        case 'super-quiz':
-          requestData = { type: 3, amount: 2500 };
-          break;
-        default:
-          setError('Invalid quiz type specified.');
-          setLoading(false);
-          return;
-      }
-
-      try {
-        const response = await apiClient.post('/quiz/access', {
-          ...requestData,
-          status: 1,
-          payment_id: paymentId,
-        });
-
-        if (response.data.certificate_url) {
-          setCertificateUrl(response.data.certificate_url);
-          localStorage.removeItem('quiz_type');
-        } else {
-          setError('Could not retrieve your certificate. Please contact support.');
-        }
-      } catch (err: any) {
-        const errorMsg = err.response?.data?.message || 'An error occurred while verifying your payment.';
-        setError(errorMsg);
-      }
-      setLoading(false);
-    };
-
-    getCertificate();
-  }, [apiClient, location]);
+  const handleDownload = () => {
+    if (certificateRef.current) {
+      html2canvas(certificateRef.current, { scale: 2 }).then((canvas) => {
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('landscape', 'px', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save('Kudimata_Certificate.pdf');
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -84,37 +48,50 @@ const CertificateDownloadPage: React.FC = () => {
   }
 
   return (
-    <div className="w-full h-full overflow-y-auto py-15 bg-[#FFFEF6] flex items-center justify-center">
-      <div className="max-w-lg w-full bg-white p-8 rounded-lg shadow-lg text-center">
+    <div className="w-full h-full overflow-y-auto py-8 bg-[#FFFEF6] flex flex-col items-center justify-center">
+      <div className="max-w-4xl w-full bg-white p-6 rounded-lg shadow-lg text-center">
         {error && (
           <div className='mb-4'>
             <AlertMessage message={error} open={!!error} onClose={() => setError(null)} />
           </div>
         )}
 
-        {certificateUrl ? (
+        {canAccess ? (
           <div className="flex flex-col items-center gap-6">
-            <img src='/certificate_badge.png' alt='Success' className='w-24 h-24' />
-            <h1 className="text-2xl font-bold">Congratulations!</h1>
-            <p className="text-gray-600">Your certificate is ready for download.</p>
-            <a
-              href={certificateUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full bg-[#FFD600] hover:bg-[#FFB800] text-black font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center"
+            <h1 className="text-2xl font-bold">Congratulations, {user?.firstname}!</h1>
+            <p className="text-gray-600">Your certificate is ready. You can download it below.</p>
+            
+            {/* Certificate Display */}
+            <div 
+              ref={certificateRef} 
+              className="relative w-[842px] h-[595px] bg-cover bg-center text-black"
+              style={{ backgroundImage: `url(${certificateImage})` }}
+            >
+              <p 
+                className="absolute font-bold text-gray-900 text-5xl left-[30px] top-[200px]"
+              >
+                {`${user?.firstname} ${user?.lastname}`}
+              </p>
+              {/* Add other dynamic data here using absolute positioning */}
+              <p className="absolute font-bold text-gray-900 text-[11px] left-[56px] top-[357px]">{new Date().getDate() + '/' + (new Date().getMonth() + 1) + '/' + new Date().getFullYear()}</p>
+            </div>
+
+            <button
+              onClick={handleDownload}
+              className="w-1/2 bg-[#FFD600] hover:bg-[#FFB800] text-black font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center mt-4"
             >
               Download Certificate
-            </a>
+            </button>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-4">
             <h1 className="text-2xl font-bold text-red-600">Download Failed</h1>
             <p className="text-gray-600">We could not retrieve your certificate. Please try again or contact support if the issue persists.</p>
             <button
-              onClick={() => navigate('/super-quiz')}
+              onClick={() => navigate('/super-quiz/certificate')}
               className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-4 rounded-lg transition duration-300"
             >
-              Back to Quizzes
+              Back to Certificate Page
             </button>
           </div>
         )}
