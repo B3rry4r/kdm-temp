@@ -745,7 +745,7 @@ useEffect(() => {
             />
           </div>
           <div className="name flex items-center flex gap-2 max-md:gap-1">
-            <p className="text-sm max-sm:text-xs max-md:text-xs font-bold">{props.author}</p>
+            <p className="text-sm max-md:text-xs max-md:text-xs font-bold">{props.author}</p>
             <p className="text-xs text-gray-500">in</p>
             <p className="text-sm max-sm:text-xs max-md:text-xs max-sm:hidden font-bold">
               {props.institution}
@@ -815,7 +815,7 @@ useEffect(() => {
         {props.isPostScreen ? (
           <>
           <p
-            className={`text-sm max-md:text-xs`}
+            className={`text-sm max-md:text-xs break-words`}
             >
             {props.description}
           </p>
