@@ -843,7 +843,7 @@ useEffect(() => {
         )}
       </div>
       {props.image && (
-        <div className="img w-full bg-gray-200">
+        <div className="img w-full max-w-xl bg-gray-200">
           <img
             src={props.image}
             alt="content"
