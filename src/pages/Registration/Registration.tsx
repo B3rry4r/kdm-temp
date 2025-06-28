@@ -9,8 +9,9 @@ import { useAuth } from '../../context/AuthContext/AuthContext';
 import AlertMessage from '../../components/AlertMessage';
 import { Eye, EyeOff } from 'lucide-react';
 import countryCodes from '../../data/countryCodes.json';
+import { nigeriaStateCodes } from '../../data/nigeriaStateCodes';
 
-interface Props {}
+interface Props { }
 
 const Registration: React.FC<Props> = () => {
   const { login, initiateRegistration, register, resetToken, resetPassword, isAuthenticated } = useAuth();
@@ -443,15 +444,14 @@ const Registration: React.FC<Props> = () => {
           {errors.fullName && <span className="text-xs text-red-500">{errors.fullName}</span>}
           <label className="text-xs mb-1 block">Country</label>
           <select
-            value={form.country || ''}
-            onChange={(e) => setForm({ ...form, country: e.target.value })}
+            value={isCorper ? 'Nigeria' : (form.country || '')}
+            onChange={e => setForm({ ...form, country: e.target.value })}
             className="w-full p-2 outline-none border-none bg-gray-200 rounded mb-2 text-sm"
+            disabled={isCorper}
           >
-            <option value="">Select Country</option>
-            <option value="NG">Nigeria</option>
-            <option value="US">United States</option>
-            <option value="PG">Papua New Guinea</option>
-            <option value="GW">Guinea-Bissau</option>
+            {countryCodes.map(c => (
+              <option key={c.name} value={c.name}>{c.name}</option>
+            ))}
           </select>
           {errors.country && <span className="text-xs text-red-500">{errors.country}</span>}
           <label className="text-xs mb-1 block">Gender</label>
@@ -476,13 +476,47 @@ const Registration: React.FC<Props> = () => {
                 onChange={(e) => setForm({ ...form, state_of_origin: e.target.value })}
               />
               <label className="text-xs mb-1 block">State Code</label>
-              <input
-                type="text"
-                placeholder="State Code (e.g., KN/90/90)"
-                className="w-full p-2 outline-none border-none bg-gray-200 rounded mb-2 text-sm"
-                value={form.state_code || ''}
-                onChange={(e) => setForm({ ...form, state_code: e.target.value })}
-              />
+              <div className="flex gap-2 mb-2">
+                <div className="w-1/5">
+                  <select
+                    className="w-full p-2 outline-none border-none bg-gray-200 rounded text-sm"
+                    value={form.state_code_prefix || ''}
+                    onChange={e => {
+                      // Combine with the suffix if present
+                      setForm({
+                        ...form,
+                        state_code_prefix: e.target.value,
+                        state_code: e.target.value && form.state_code_suffix
+                          ? `${e.target.value}/${form.state_code_suffix}`
+                          : e.target.value
+                      });
+                    }}
+                  >
+                    <option value="">Code</option>
+                    {nigeriaStateCodes.map((state) => (
+                      <option key={state.code} value={state.code}>{state.code}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-3">
+                  {/* <label className="text-xs mb-1 block">NYSC Number</label> */}
+                  <input
+                    type="text"
+                    placeholder="1234/2024"
+                    className="w-full p-2 outline-none border-none bg-gray-200 rounded text-sm"
+                    value={form.state_code_suffix || ''}
+                    onChange={e => {
+                      setForm({
+                        ...form,
+                        state_code_suffix: e.target.value,
+                        state_code: form.state_code_prefix
+                          ? `${form.state_code_prefix}/${e.target.value}`
+                          : e.target.value
+                      });
+                    }}
+                  />
+                </div>
+              </div>
               <label className="text-xs mb-1 block">Sector</label>
               <input
                 type="text"

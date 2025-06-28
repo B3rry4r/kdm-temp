@@ -29,6 +29,7 @@ import { PostUpdateProvider } from "./context/PostUpdateContext/PostUpdateContex
 import { AlertProvider } from "./context/AlertContext/AlertContext";
 import { SearchProvider } from "./components/header/Header";
 import { CourseProgressProvider } from "./context/CourseProgressContext/CourseProgressContext";
+import { CourseSummaryProvider } from "./context/CourseSummaryContext/CourseSummaryContext";
 import SuperQuiz from "./pages/SuperQuiz/SuperQuiz";
 import FinancialLiteracyQuiz from "./pages/SuperQuiz/FinancialLiteracyQuiz/FinancialLiteracyQuiz";
 import KickstartMyBizQuiz from "./pages/SuperQuiz/KickstartMyBizQuiz/KickstartMyBizQuiz";
@@ -38,6 +39,7 @@ import FinancialLiteracyQuizResultsPage from "./pages/SuperQuiz/FinancialLiterac
 import KickstartMyBizQuizResultsPage from "./pages/SuperQuiz/KickstartMyBizQuiz/KickstartMyBizQuizResultsPage";
 import CertificateDownloadPage from "./pages/SuperQuiz/Certificate/CertificateDownloadPage";
 import CertificatePage from "./pages/SuperQuiz/Certificate/CertificatePage";
+import LmsCertificateDownloadPage from "./pages/SuperQuiz/Certificate/LmsCertificateDownloadPage";
 import CacRegistration from "./pages/cac-registration/CacRegistration";
 
 const App: React.FC = () => (
@@ -48,7 +50,8 @@ const App: React.FC = () => (
           <AlertProvider>
             <SearchProvider>
               <CourseProgressProvider>
-                <Routes>
+                <CourseSummaryProvider>
+                  <Routes>
                   {/* Public Routes */}
                   <Route
                     path="/"
@@ -298,6 +301,14 @@ const App: React.FC = () => (
                     }
                   />
                   <Route
+                    path="/lms/certificate-download"
+                    element={
+                      <PrivateRoute>
+                        <LmsCertificateDownloadPage />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
                     path="/quiz/:courseId"
                     element={
                       <PrivateRoute>
@@ -322,6 +333,7 @@ const App: React.FC = () => (
                     }
                   />
                 </Routes>
+                </CourseSummaryProvider>
               </CourseProgressProvider>
             </SearchProvider>
           </AlertProvider>

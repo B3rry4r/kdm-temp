@@ -5,6 +5,7 @@ import DropDownComponents from './DropDownComponents/DropDownComponents';
 import { useAuth } from '../../../context/AuthContext/AuthContext';
 import AlertMessage from '../../../components/AlertMessage';
 import { useCourseProgress } from '../../../context/CourseProgressContext/CourseProgressContext';
+import { useCourseSummary } from '../../../context/CourseSummaryContext/CourseSummaryContext';
 
 // Define types based on API response
 interface Lesson {
@@ -50,6 +51,7 @@ interface Course {
   sections: Section[];
   quiz_settings: QuizSettings;
   completion_percent?: number; // Optional, not in API response
+  course_status?: string; // Optional, not in API response
 }
 
 interface DropDownItemType {
@@ -70,7 +72,8 @@ interface CourseSectionOverview {
 const MySingleCourse = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { apiClient, user: authUser } = useAuth();
+  const { apiClient, apiClient4, user: authUser } = useAuth();
+  const { courseSummaries } = useCourseSummary();
   const [course, setCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,13 +101,20 @@ const MySingleCourse = () => {
       
       try {
         const response = await apiClient.get<Course>(`/course/${id}`);
-        
-        // Get course progress from context
-        const progressPercent = getCourseProgress(parseInt(id));
-        
+        // Try to get summary from context, then localStorage
+        let summary = courseSummaries[Number(id)];
+        if (!summary) {
+          const local = localStorage.getItem(`selected_course_summary_${id}`);
+          if (local) {
+            try {
+              summary = JSON.parse(local);
+            } catch {}
+          }
+        }
         setCourse({
           ...response.data,
-          completion_percent: progressPercent, // Use tracked progress
+          completion_percent: summary && typeof summary.completion_percent === 'number' ? summary.completion_percent : 0,
+          course_status: summary && summary.course_status ? summary.course_status : response.data.course_status,
         });
       } catch (err: any) {
         console.error('Error fetching course:', err.response?.data || err.message);
@@ -136,9 +146,39 @@ const MySingleCourse = () => {
     return 'View Course';
   };
 
-  const handlePayForCertificate = () => {
-    // Will be implemented later
-    console.log('Pay for certificate clicked');
+  const handlePayForCertificate = async () => {
+    if (!authUser) {
+      setAlertMsg('You must be logged in to purchase a certificate.');
+      setAlertSeverity('error');
+      setAlertOpen(true);
+      return;
+    }
+    try {
+      // You may want to get this from a config or env
+      const amount = 1000;
+      // Use your actual API base URL for redirect
+      const apiBaseUrl = window.location.origin;
+      const redirect_url = `${apiBaseUrl}/lms/certificate-download`;
+      const payload = {
+        amount,
+        redirect_url,
+        email: authUser.email,
+        phone: authUser.phone || '',
+        name: `${authUser.firstname} ${authUser.lastname}`,
+      };
+      const response = await apiClient4.post('/payment/link', payload);
+      if (response?.data?.payment_link) {
+        window.location.href = response.data.payment_link;
+      } else {
+        setAlertMsg('Unable to initiate payment. Please try again.');
+        setAlertSeverity('error');
+        setAlertOpen(true);
+      }
+    } catch (error: any) {
+      setAlertMsg(error?.response?.data?.message || 'Payment initiation failed.');
+      setAlertSeverity('error');
+      setAlertOpen(true);
+    }
   };
 
   // Helper to estimate lesson time (since API doesn't provide it)

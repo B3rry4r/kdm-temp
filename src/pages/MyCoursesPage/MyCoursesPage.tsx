@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import MyCourseCard from './CourseComponents/MyCourseCard';
 import { useAuth } from '../../context/AuthContext/AuthContext';
 import { useSearch } from '../../components/header/Header';
+import { CourseSummaryProvider, useCourseSummary } from '../../context/CourseSummaryContext/CourseSummaryContext';
 
 interface Course {
   id: number;
@@ -28,7 +29,7 @@ interface MyCourseResponse {
   course: Omit<Course, 'completion_percent' | 'course_status'>;
 }
 
-const MyCoursesPage = () => {
+const MyCoursesPageInner = () => {
   const { apiClient } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [filter, setFilter] = useState<string>('All');
@@ -36,6 +37,7 @@ const MyCoursesPage = () => {
   const [error, setError] = useState<string | null>(null);
   const { searchQuery } = useSearch();
 
+  const { setCourseSummaries } = useCourseSummary();
   const fetchCourses = async () => {
     try {
       const response = await apiClient.get<MyCourseResponse[]>('/my/courses');
@@ -62,6 +64,15 @@ const MyCoursesPage = () => {
       
       console.log('Transformed courses:', transformedCourses);
       setCourses(transformedCourses);
+      // Update course summary context for global access
+      const summaryMap = transformedCourses.reduce((acc, course) => {
+        acc[course.id] = {
+          completion_percent: course.completion_percent,
+          course_status: course.course_status,
+        };
+        return acc;
+      }, {} as { [courseId: number]: { completion_percent: number; course_status: string } });
+      setCourseSummaries(summaryMap);
       setError(null);
     } catch (err: any) {
       console.error('Error fetching courses:', err.response?.data || err.message);
@@ -283,5 +294,11 @@ const MyCoursesPage = () => {
     </div>
   );
 };
+
+const MyCoursesPage = () => (
+  <CourseSummaryProvider>
+    <MyCoursesPageInner />
+  </CourseSummaryProvider>
+);
 
 export default MyCoursesPage;

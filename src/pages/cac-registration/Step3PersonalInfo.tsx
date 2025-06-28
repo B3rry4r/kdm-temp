@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { nigeriaStatesLGAs } from '../../data/nigeriaStatesLGAs';
 
 interface Step3PersonalInfoProps {
   onSubmit: () => void;
@@ -28,9 +29,33 @@ const SelectField: React.FC<{ label: string, name: string, value: string, placeh
 );
 
 const Step3PersonalInfo: React.FC<Step3PersonalInfoProps> = ({ onSubmit, onBack, updateFormData, formData, isSubmitting }) => {
+  // Nigerian state/LGA logic
+  const [selectedState, setSelectedState] = useState<string>(formData.state_of_prop || nigeriaStatesLGAs[0].state);
+  const [availableLgas, setAvailableLgas] = useState<string[]>([]);
+
+  useEffect(() => {
+    const found = nigeriaStatesLGAs.find(s => s.state === selectedState);
+    setAvailableLgas(found ? found.lgas : []);
+    if (!found?.lgas.includes(formData.lga_of_prop)) {
+      updateFormData({ lga_of_prop: '' });
+    }
+    // eslint-disable-next-line
+  }, [selectedState]);
+
+  useEffect(() => {
+    if (formData.state_of_prop && formData.state_of_prop !== selectedState) {
+      setSelectedState(formData.state_of_prop);
+    }
+    // eslint-disable-next-line
+  }, [formData.state_of_prop]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     updateFormData({ [e.target.name]: e.target.value });
+    if (e.target.name === 'state_of_prop') {
+      setSelectedState(e.target.value);
+    }
   };
+
   return (
     <div className="w-full max-w-2xl mx-auto">
       <h2 className="text-2xl font-bold text-center mb-4">Tell us about yourself</h2>
@@ -42,9 +67,18 @@ const Step3PersonalInfo: React.FC<Step3PersonalInfoProps> = ({ onSubmit, onBack,
         <InputField label="Phone number" name="phone_of_prop" value={formData.phone_of_prop} onChange={handleChange} placeholder="Enter phone number" type="tel" />
         <InputField label="Email" name="email_of_prop" value={formData.email_of_prop} onChange={handleChange} placeholder="Enter email address" type="email" />
         <SelectField label="Gender" name="gender_of_prop" value={formData.gender_of_prop} onChange={handleChange} placeholder="Select gender"><option value="Male">Male</option><option value="Female">Female</option></SelectField>
-        <SelectField label="State" name="state_of_prop" value={formData.state_of_prop} onChange={handleChange} placeholder="Select state"><option value="California">California</option></SelectField>
-        <SelectField label="LGA" name="lga_of_prop" value={formData.lga_of_prop} onChange={handleChange} placeholder="Select LGA"><option value="Anytown LGA">Anytown LGA</option></SelectField>
-        <SelectField label="City" name="city_of_prop" value={formData.city_of_prop} onChange={handleChange} placeholder="Select city"><option value="Anytown">Anytown</option></SelectField>
+        <SelectField label="State" name="state_of_prop" value={selectedState} onChange={handleChange} placeholder="Select state">
+          {nigeriaStatesLGAs.map(stateObj => (
+            <option key={stateObj.state} value={stateObj.state}>{stateObj.state}</option>
+          ))}
+        </SelectField>
+        <SelectField label="LGA" name="lga_of_prop" value={formData.lga_of_prop} onChange={handleChange} placeholder="Select LGA">
+          <option value="" disabled>Select LGA</option>
+          {availableLgas.map(lga => (
+            <option key={lga} value={lga}>{lga}</option>
+          ))}
+        </SelectField>
+        <InputField label="City" name="city_of_prop" value={formData.city_of_prop} onChange={handleChange} placeholder="Enter city"/>
         <InputField label="Street name" name="p_street_name" value={formData.p_street_name} onChange={handleChange} placeholder="Enter street name" />
         <InputField label="Street Number" name="street_number_of_prop" value={formData.street_number_of_prop} onChange={handleChange} placeholder="Enter street number" />
         <InputField label="Nationality" name="nationality_of_prop" value={formData.nationality_of_prop} onChange={handleChange} placeholder="Enter your nationality" />

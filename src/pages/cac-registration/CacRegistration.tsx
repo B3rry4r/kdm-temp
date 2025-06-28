@@ -83,6 +83,11 @@ const CacRegistration: React.FC = () => {
   };
 
     const handleContinue = () => {
+    // Auto-clear sessionStorage if starting a new registration (step 1)
+    if (currentStep === 1) {
+      sessionStorage.removeItem('cac_form_data');
+      sessionStorage.removeItem('cac_payment_verified');
+    }
     if (currentStep === 1 && !validateStep1()) return;
     if (currentStep === 2 && !validateStep2()) return;
     setCurrentStep(prev => prev + 1);
@@ -99,18 +104,27 @@ const CacRegistration: React.FC = () => {
       const tx_ref = params.get('tx_ref');
 
       if (status && tx_ref) {
-        if (status.toLowerCase() === 'successful' || status.toLowerCase() === 'completed') {
+        if (status.toLowerCase() === 'successful' || status.toLowerCase() === 'completed' || status.toLowerCase() === 'success') {
           const savedData = sessionStorage.getItem('cac_form_data');
           if (savedData) {
             const parsedData = JSON.parse(savedData);
-            // Restore text data, user will need to re-upload files
             setFormData(prev => ({ ...prev, ...parsedData }));
-            showAlert('Payment successful! Please re-upload your documents to finalize your registration.', 'info');
+            // Check for missing files and warn if needed
+            if (!formData.nin_slip || !formData.passport || !formData.signature) {
+              showAlert('Payment successful! Please re-upload ALL required documents (NIN Slip, Passport, Signature) to finalize your registration.', 'warning');
+            } else {
+              showAlert('Payment successful! Please re-upload your documents to finalize your registration.', 'info');
+            }
             sessionStorage.setItem('cac_payment_verified', 'true');
             // Clean URL params
             navigate(location.pathname, { replace: true });
           } else {
-            showAlert('Could not find saved form data after payment.', 'error');
+            // No saved form data, but payment was successful
+            // Store transaction info in localStorage so user doesn't have to pay again
+            localStorage.setItem('cac_paid_tx', JSON.stringify({ status, tx_ref }));
+            showAlert('Your payment was successful, but your form data could not be found (maybe you switched browser or device). Please fill in your details and upload your documents to continue registration. You will not be charged again.', 'info');
+            sessionStorage.setItem('cac_payment_verified', 'true');
+            navigate(location.pathname, { replace: true });
           }
         } else {
           showAlert('Payment was not successful. Please try again.', 'error');

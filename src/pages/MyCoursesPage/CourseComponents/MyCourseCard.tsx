@@ -16,6 +16,15 @@ const MyCourseCard = (props: Props) => {
   const navigate = useNavigate();
 
   const handleEnrollClick = () => {
+    // Save summary to localStorage before navigating
+    const summary = {
+      completion_percent: props.completionPercent || 0,
+      course_status: props.buttonText.toLowerCase().includes('complete') ? 'completed' : 'in-progress',
+    };
+    localStorage.setItem(
+      `selected_course_summary_${props.id}`,
+      JSON.stringify(summary)
+    );
     navigate(props.link);
   };
 
