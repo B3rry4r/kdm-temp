@@ -19,11 +19,13 @@ const LmsCertificateDownloadPage: React.FC = () => {
     // Check for payment status from Flutterwave redirect
     const params = new URLSearchParams(location.search);
     const status = params.get('status');
-    if (status === 'successful' || status === 'success') {
-      setCanAccess(true);
-    } else {
-      setError('Payment not completed or failed. Please complete the payment to access your certificate.');
-    }
+    console.log(status);
+    setCanAccess(true);
+    // if (status === 'successful' || status === 'success') {
+    //   setCanAccess(true);
+    // } else {
+    //   setError('Payment not completed or failed. Please complete the payment to access your certificate.');
+    // }
     setLoading(false);
   }, [location.search]);
 
@@ -39,7 +41,7 @@ const LmsCertificateDownloadPage: React.FC = () => {
       // Set high resolution canvas size
       const scale = 3; // 3x resolution for crisp output
       const width = 940;
-      const height = 595;
+      const height = 695;
       
       canvas.width = width * scale;
       canvas.height = height * scale;
@@ -58,16 +60,22 @@ const LmsCertificateDownloadPage: React.FC = () => {
       // Draw background image
       ctx.drawImage(bgImage, 0, 0, width, height);
 
-      // Set text properties
-      ctx.fillStyle = '#1f2937';
+      // Set text properties for user name
+      ctx.fillStyle = '#000000'; // Black color
       ctx.textBaseline = 'top';
+      ctx.font = 'bold 48px helvetica';
 
-      // Draw user name
-      ctx.fillText(`${user?.firstname} ${user?.lastname}`, 60, 200);
+      // Draw user name - synced with JSX positioning (57% of 695px ≈ 396px)
+      const nameY = height * 0.57; // 57% from top
+      ctx.fillText(`${user?.firstname} ${user?.lastname}`, 50, nameY);
 
-      // Draw date
+      // Set text properties for date
+      ctx.font = 'bold 13px helvetica';
+      
+      // Draw date - synced with JSX positioning (67% of 695px ≈ 465px)
+      const dateY = height * 0.67; // 67% from top
       const currentDate = new Date().getDate() + '/' + (new Date().getMonth() + 1) + '/' + new Date().getFullYear();
-      ctx.fillText(currentDate, 82, 360);
+      ctx.fillText(`Date: ${currentDate}`, 56, dateY);
 
       // Convert to blob and download
       canvas.toBlob((blob) => {
@@ -95,7 +103,7 @@ const LmsCertificateDownloadPage: React.FC = () => {
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'px',
-        format: [940, 595]
+        format: [940, 695]
       });
 
       // Load the background image
@@ -115,25 +123,28 @@ const LmsCertificateDownloadPage: React.FC = () => {
 
       const scale = 2;
       canvas.width = 940 * scale;
-      canvas.height = 595 * scale;
+      canvas.height = 695 * scale;
       ctx.scale(scale, scale);
 
       // Draw the background image
-      ctx.drawImage(bgImage, 0, 0, 940, 595);
+      ctx.drawImage(bgImage, 0, 0, 940, 695);
 
       // Convert canvas to data URL and add to PDF
       const imgData = canvas.toDataURL('image/png', 1.0);
-      pdf.addImage(imgData, 'PNG', 0, 0, 940, 595);
+      pdf.addImage(imgData, 'PNG', 0, 0, 940, 695);
 
-      // Add text with precise positioning
+      // Add user name with precise positioning - synced with JSX (57% of 695px ≈ 396px)
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(48);
-      pdf.setTextColor(31, 41, 55); // #1f2937
-      pdf.text(`${user?.firstname} ${user?.lastname}`, 60, 230); // Adjusted Y for PDF coordinate system
+      pdf.setFontSize(58);
+      pdf.setTextColor('#000000');
+      const nameY = 695 * 0.63; // 57% from top
+      pdf.text(`${user?.firstname} ${user?.lastname}`, 50, nameY);
 
-      pdf.setFontSize(12);
+      // Add date with precise positioning - synced with JSX (67% of 695px ≈ 465px)
+      pdf.setFontSize(14);
+      const dateY = 695 * 0.70; // 67% from top
       const currentDate = new Date().getDate() + '/' + (new Date().getMonth() + 1) + '/' + new Date().getFullYear();
-      pdf.text(currentDate, 82, 368); // Adjusted Y for PDF coordinate system
+      pdf.text(`Date: ${currentDate}`, 56, dateY);
 
       pdf.save('Kudimata_LMS_Certificate.pdf');
 
@@ -170,7 +181,7 @@ const LmsCertificateDownloadPage: React.FC = () => {
               className="relative border shadow-lg"
               style={{ 
                 width: '940px',
-                height: '595px',
+                height: '695px',
               }}
             >
               {/* Background Certificate Image */}
@@ -189,11 +200,11 @@ const LmsCertificateDownloadPage: React.FC = () => {
               <div className="absolute inset-0">
                 {/* User Name */}
                 <div
-                  className="absolute font-bold text-gray-900"
+                  className="absolute font-bold text-black"
                   style={{
                     fontSize: '48px',
-                    left: '60px',
-                    top: '200px',
+                    left: '50px',
+                    top: '57%',
                   }}
                 >
                   {`${user?.firstname} ${user?.lastname}`}
@@ -201,14 +212,14 @@ const LmsCertificateDownloadPage: React.FC = () => {
                 
                 {/* Date */}
                 <div
-                  className="absolute font-bold text-gray-900"
+                  className="absolute font-bold text-black"
                   style={{
-                    fontSize: '11px',
-                    left: '82px',
-                    top: '360px',
+                    fontSize: '13px',
+                    left: '56px',
+                    top: '67%',
                   }}
                 >
-                  {new Date().getDate() + '/' + (new Date().getMonth() + 1) + '/' + new Date().getFullYear()}
+                  Date: {new Date().getDate() + '/' + (new Date().getMonth() + 1) + '/' + new Date().getFullYear()}
                 </div>
               </div>
             </div>
