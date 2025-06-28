@@ -21,7 +21,7 @@ const FinancialLiteracyQuiz: React.FC = () => {
           localStorage.removeItem('kudimata_quiz_token');
         }
 
-        if (has_taken_fl && (fl_tries || 0) >= 20) {
+        if (has_taken_fl && (fl_tries || 0) >= 3) {
           navigate('/super-quiz/financial-literacy/results');
           return;
         }

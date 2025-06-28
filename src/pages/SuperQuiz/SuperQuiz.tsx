@@ -116,15 +116,15 @@ const SuperQuiz: React.FC = () => {
     );
   }
 
-  const flAttemptsLeft = quizStatus ? 20 - (quizStatus.fl_tries || 0) : 20;
-  const kmbAttemptsLeft = quizStatus ? 20 - (quizStatus.kmb_tries || 0) : 20;
+  const flAttemptsLeft = quizStatus ? 3 - (quizStatus.fl_tries || 0) : 3;
+  const kmbAttemptsLeft = quizStatus ? 3 - (quizStatus.kmb_tries || 0) : 3;
 
   const quizzesData = [
     {
       key: 'financial',
       title: 'Financial Literacy Quiz',
       description: 'Unlock Your Financial Potential with the Kudimata Financial Literacy Quiz!',
-      attempts: `Attempts left this month: ${flAttemptsLeft < 0 ? 0 : flAttemptsLeft}/20`,
+      attempts: `Attempts left this month: ${flAttemptsLeft < 0 ? 0 : flAttemptsLeft}/3`,
       imgAlt: flq,
       disabled: flAttemptsLeft <= 0 && quizStatus?.has_taken_fl,
       onClick: () => {
@@ -139,7 +139,7 @@ const SuperQuiz: React.FC = () => {
       key: 'biz',
       title: 'Kickstart My Biz Quiz',
       description: 'Discover the perfect next step for your entrepreneurial journey',
-      attempts: `Attempts left this month: ${kmbAttemptsLeft < 0 ? 0 : kmbAttemptsLeft}/20`,
+      attempts: `Attempts left this month: ${kmbAttemptsLeft < 0 ? 0 : kmbAttemptsLeft}/3`,
       imgAlt: kmb,
       disabled: !quizStatus?.eligible_for_kmb,
       onClick: () => {
