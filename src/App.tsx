@@ -41,6 +41,7 @@ import CertificateDownloadPage from "./pages/SuperQuiz/Certificate/CertificateDo
 import CertificatePage from "./pages/SuperQuiz/Certificate/CertificatePage";
 import LmsCertificateDownloadPage from "./pages/SuperQuiz/Certificate/LmsCertificateDownloadPage";
 import CacRegistration from "./pages/cac-registration/CacRegistration";
+import { CourseCertificateProvider } from "./context/CourseCertificateContext";
 
 const App: React.FC = () => (
   <Router>
@@ -51,7 +52,8 @@ const App: React.FC = () => (
             <SearchProvider>
               <CourseProgressProvider>
                 <CourseSummaryProvider>
-                  <Routes>
+                  <CourseCertificateProvider>
+                    <Routes>
                   {/* Public Routes */}
                   <Route
                     path="/"
@@ -333,6 +335,7 @@ const App: React.FC = () => (
                     }
                   />
                 </Routes>
+                  </CourseCertificateProvider>
                 </CourseSummaryProvider>
               </CourseProgressProvider>
             </SearchProvider>

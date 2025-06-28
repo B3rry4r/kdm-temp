@@ -1,5 +1,6 @@
 import { useEffect, useState, ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useCourseCertificate } from '../../../context/CourseCertificateContext';
 import { ForwardArrowSVG } from '../../../assets/icons/icons';
 import DropDownComponents from './DropDownComponents/DropDownComponents';
 import { useAuth } from '../../../context/AuthContext/AuthContext';
@@ -70,6 +71,7 @@ interface CourseSectionOverview {
 }
 
 const MySingleCourse = () => {
+  const { setCertificateCourseTitle } = useCourseCertificate();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { apiClient, apiClient4, user: authUser } = useAuth();
@@ -111,11 +113,18 @@ const MySingleCourse = () => {
             } catch {}
           }
         }
+        const completion_percent = summary && typeof summary.completion_percent === 'number' ? summary.completion_percent : 0;
         setCourse({
           ...response.data,
-          completion_percent: summary && typeof summary.completion_percent === 'number' ? summary.completion_percent : 0,
+          completion_percent,
           course_status: summary && summary.course_status ? summary.course_status : response.data.course_status,
         });
+        // Set course title in certificate context if completed
+        if (completion_percent === 100) {
+          setCertificateCourseTitle(response.data.title);
+        } else {
+          setCertificateCourseTitle(null);
+        }
       } catch (err: any) {
         console.error('Error fetching course:', err.response?.data || err.message);
         setError('Failed to load course');

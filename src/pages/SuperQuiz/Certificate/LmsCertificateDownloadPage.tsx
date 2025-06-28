@@ -4,8 +4,11 @@ import jsPDF from 'jspdf';
 import { useAuth } from '../../../context/AuthContext/AuthContext';
 import AlertMessage from '../../../components/AlertMessage';
 import certificateImage from '../../../assets/cert2.jpg';
+import { useCourseCertificate } from '../../../context/CourseCertificateContext';
 
 const LmsCertificateDownloadPage: React.FC = () => {
+  const { certificateCourseTitle } = useCourseCertificate();
+
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -20,12 +23,12 @@ const LmsCertificateDownloadPage: React.FC = () => {
     const params = new URLSearchParams(location.search);
     const status = params.get('status');
     console.log(status);
-    setCanAccess(true);
-    // if (status === 'successful' || status === 'success') {
-    //   setCanAccess(true);
-    // } else {
-    //   setError('Payment not completed or failed. Please complete the payment to access your certificate.');
-    // }
+    // setCanAccess(true);
+    if (status === 'successful' || status === 'success') {
+      setCanAccess(true);
+    } else {
+      setError('Payment not completed or failed. Please complete the payment to access your certificate.');
+    }
     setLoading(false);
   }, [location.search]);
 
@@ -64,6 +67,12 @@ const LmsCertificateDownloadPage: React.FC = () => {
       ctx.fillStyle = '#000000'; // Black color
       ctx.textBaseline = 'top';
       ctx.font = 'bold 48px helvetica';
+
+      // Draw course title ~120px above user name
+      const courseTitle = certificateCourseTitle || '[DEBUG: No course title set]';
+      ctx.font = 'bold 30px helvetica';
+      const courseTitleY = height * 0.63 - 140;
+      ctx.fillText(courseTitle, 50, courseTitleY);
 
       // Draw user name - synced with JSX positioning (57% of 695px ≈ 396px)
       const nameY = height * 0.57; // 57% from top
@@ -133,6 +142,14 @@ const LmsCertificateDownloadPage: React.FC = () => {
       const imgData = canvas.toDataURL('image/png', 1.0);
       pdf.addImage(imgData, 'PNG', 0, 0, 940, 695);
 
+      // Add course title ~120px above user name
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(36);
+      pdf.setTextColor('#000000');
+      const courseTitle = certificateCourseTitle || '[DEBUG: No course title set]';
+      const courseTitleY = 695 * 0.63 - 110;
+      pdf.text(courseTitle, 50, courseTitleY);
+
       // Add user name with precise positioning - synced with JSX (57% of 695px ≈ 396px)
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(58);
@@ -198,6 +215,17 @@ const LmsCertificateDownloadPage: React.FC = () => {
               
               {/* Overlay Content */}
               <div className="absolute inset-0">
+                {/* Course Title (debug/visible) */}
+                <div
+                  className="absolute font-bold text-black"
+                  style={{
+                    fontSize: '30px',
+                    left: '50px',
+                    top: 'calc(57% - 110px)',
+                  }}
+                >
+                  {certificateCourseTitle || '[DEBUG: No course title set]'}
+                </div>
                 {/* User Name */}
                 <div
                   className="absolute font-bold text-black"
@@ -209,7 +237,6 @@ const LmsCertificateDownloadPage: React.FC = () => {
                 >
                   {`${user?.firstname} ${user?.lastname}`}
                 </div>
-                
                 {/* Date */}
                 <div
                   className="absolute font-bold text-black"
