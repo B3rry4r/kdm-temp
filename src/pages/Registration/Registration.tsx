@@ -444,11 +444,12 @@ const Registration: React.FC<Props> = () => {
           {errors.fullName && <span className="text-xs text-red-500">{errors.fullName}</span>}
           <label className="text-xs mb-1 block">Country</label>
           <select
-            value={isCorper ? 'Nigeria' : (form.country || '')}
+            value={form.country || ''}
             onChange={e => setForm({ ...form, country: e.target.value })}
             className="w-full p-2 outline-none border-none bg-gray-200 rounded mb-2 text-sm"
-            disabled={isCorper}
+            // disabled={isCorper}
           >
+            <option value="">Select Country</option>
             {countryCodes.map(c => (
               <option key={c.name} value={c.name}>{c.name}</option>
             ))}
